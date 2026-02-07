@@ -1,0 +1,49 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { MainLayout } from '@/components/layout/MainLayout';
+import { Dashboard } from '@/pages/Dashboard';
+import { Profile } from '@/pages/Profile';
+import { Compliance } from '@/pages/Compliance';
+import { Precedents } from '@/pages/Precedents';
+import { HITL } from '@/pages/HITL';
+import { MyCases } from '@/pages/MyCases';
+import { CaseReview } from '@/pages/CaseReview';
+import { CaseDistribution } from '@/pages/CaseDistribution';
+import { CoordinatorDistribution } from '@/pages/CoordinatorDistribution';
+import { StatsDashboard } from '@/pages/StatsDashboard';
+import { CitizenPortal } from '@/pages/CitizenPortal';
+import { ControlRoom } from '@/pages/ControlRoom';
+import { LanguageProvider } from '@/contexts/LanguageContext';
+
+function App() {
+  return (
+    <LanguageProvider>
+      <Router>
+        <Routes>
+          {/* Rotas Públicas / Standalone */}
+          <Route path="/cidadao" element={<CitizenPortal />} />
+
+          {/* Main Layout Routes (Internal System) */}
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="meus-casos" element={<MyCases />} />
+            <Route path="meus-casos/:id" element={<CaseReview />} />
+            <Route path="perfil/:id" element={<Profile />} />
+            <Route path="compliance" element={<Compliance />} />
+            <Route path="precedentes" element={<Precedents />} />
+            <Route path="acao-humana" element={<HITL />} />
+            <Route path="acao-humana/:taskId" element={<HITL />} />
+            
+            {/* Control & Management Routes */}
+            <Route path="distribuicao" element={<CaseDistribution />} />
+            <Route path="coordenador" element={<CoordinatorDistribution />} />
+            <Route path="estatisticas" element={<StatsDashboard />} />
+            <Route path="controle" element={<ControlRoom />} />
+          </Route>
+        </Routes>
+      </Router>
+    </LanguageProvider>
+  );
+}
+
+export default App;
