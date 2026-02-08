@@ -20,11 +20,12 @@ import {
   ArrowLeft, Scale, FileText, AlertCircle, CheckCircle2, Gavel, ArrowUpRight, Lock, 
   ExternalLink, Paperclip, Eye, Edit2, RefreshCw, Loader2, ShieldAlert, PieChart, 
   Split, ArrowRightLeft, PenTool, Shield, Calendar, MapPin, Video, Clock, 
-  CalendarPlus, Download, Siren, Maximize2, Minimize2, BookOpen, Sparkles 
+  CalendarPlus, Download, Siren, Maximize2, Minimize2, BookOpen, Sparkles, BrainCircuit 
 } from 'lucide-react';
 import { PdfViewer } from '@/components/business/PdfViewer';
 import { PrecedentComparator } from '@/components/business/PrecedentComparator';
 import { SmartDecisionEditor } from '@/components/business/SmartDecisionEditor';
+import { PsychologicalAnalysis } from '@/components/business/PsychologicalAnalysis';
 import { dynamoService } from '@/services/awsMock';
 
 // Interface para a resposta da API
@@ -42,6 +43,9 @@ export function CaseReview() {
   
   // Estado para o visualizador de documentos
   const [isDocViewerOpen, setIsDocViewerOpen] = useState(false);
+
+  // Estado para Análise Psicológica (IA)
+  const [isPsychAnalysisOpen, setIsPsychAnalysisOpen] = useState(false);
   
   // Estado para o Comparador Visual (Diff View)
   const [comparatorData, setComparatorData] = useState<{current: string, precedent: string, score: number} | null>(null);
@@ -366,6 +370,28 @@ END:VCALENDAR`;
                             <Eye className="h-4 w-4 text-muted-foreground hover:text-primary" />
                         </Button>
                     </div>
+
+                    {/* Botão de Análise Psicológica (IA) */}
+                    <div 
+                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/5 transition-all group cursor-pointer border-blue-200 shadow-sm hover:shadow-md" 
+                        onClick={() => setIsPsychAnalysisOpen(true)}
+                    >
+                        <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded flex items-center justify-center shrink-0">
+                                <BrainCircuit className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium truncate">Exame Criminológico (IA)</p>
+                                    <Badge variant="default" className="text-[10px] h-4 px-1 bg-blue-600 hover:bg-blue-700">AI</Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Análise de Sentimento & Risco</p>
+                            </div>
+                        </div>
+                        <Button size="icon" variant="ghost">
+                            <Sparkles className="h-4 w-4 text-blue-500 hover:text-blue-700" />
+                        </Button>
+                    </div>
                 </div>
             </CardContent>
           </Card>
@@ -654,6 +680,31 @@ END:VCALENDAR`;
             
             <div className="flex-1 p-4 bg-slate-50 overflow-hidden">
               <PdfViewer caseId={id || "unknown"} onLogAction={handleAuditLog} />
+            </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for Psychological Analysis (IA) */}
+      <Dialog open={isPsychAnalysisOpen} onOpenChange={setIsPsychAnalysisOpen}>
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+            <div className="p-4 border-b flex items-center justify-between bg-blue-50/50">
+              <div>
+                <DialogTitle className="flex items-center gap-2 text-primary">
+                    <BrainCircuit className="h-5 w-5 text-blue-600" />
+                    Análise de Sentimento em Laudo Psicológico
+                </DialogTitle>
+                <DialogDescription>
+                    O sistema identificou automaticamente trechos de risco e fatores protetivos.
+                </DialogDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setIsPsychAnalysisOpen(false)}>
+                <span className="sr-only">Fechar</span>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <div className="flex-1 p-6 bg-background overflow-hidden">
+              <PsychologicalAnalysis />
             </div>
         </DialogContent>
       </Dialog>

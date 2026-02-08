@@ -7,26 +7,30 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Gavel, Loader2, CheckCircle, ShieldAlert, FileInput, ArrowRight, ArrowLeft, Search, BookOpen, AlertCircle, ShieldCheck, Fingerprint, FileText, User, Briefcase, Scale, PenTool, Shield, Siren, Lock } from "lucide-react";
+import { 
+  Gavel, Loader2, CheckCircle, ShieldAlert, FileInput, ArrowRight, ArrowLeft, 
+  Search, BookOpen, AlertCircle, ShieldCheck, Fingerprint, FileText, User, 
+  Briefcase, Scale, PenTool, Shield, Siren, Lock, Usb, RefreshCw, Key
+} from "lucide-react";
 import { mockMyCases } from "@/data/mockData";
 import { SmartDecisionEditor } from "@/components/business/SmartDecisionEditor";
 import { dynamoService } from "@/services/awsMock";
+import { webPkiService, Certificate } from "@/services/webpkiMock";
 
 const formSchema = z.object({
   actionType: z.string({ required_error: "Selecione um tipo de ação." }),
   dispatchText: z.string().min(10, "O texto deve ter no mínimo 10 caracteres."),
   legalObservation: z.string().optional(),
-  humanCheck: z.boolean().refine(val => val === true, {
-    message: "Você deve confirmar a responsabilidade pela ação.",
-  }),
+  // humanCheck agora é controlado pelo fluxo de assinatura
+  signatureHash: z.string().optional(),
 });
 
 type UserRole = "JUIZ" | "ANALISTA" | "PROMOTOR" | "ADVOGADO" | "DEFENSOR" | "POLICIA";
+type SignatureStep = 'idle' | 'detecting' | 'selecting' | 'signing' | 'signed';
 
 export function HITL() {
   const { taskId } = useParams();
@@ -45,6 +49,12 @@ export function HITL() {
   // Mock Identity Context
   const [mockUserRole, setMockUserRole] = useState<UserRole>("ANALISTA");
 
+  // WebPKI / Signature State
+  const [sigStep, setSigStep] = useState<SignatureStep>('idle');
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [selectedCert, setSelectedCert] = useState<string>("");
+  const [signatureData, setSignatureData] = useState<{hash: string, cert: Certificate} | null>(null);
+
   // Recupera o caso atual com base no ID da URL
   const currentCase = mockMyCases.find(c => c.id === taskId);
 
@@ -60,17 +70,16 @@ export function HITL() {
     defaultValues: {
       dispatchText: "",
       legalObservation: "",
-      humanCheck: false,
     },
   });
-
-  // Watch humanCheck for UX effects
-  const isHumanChecked = form.watch("humanCheck");
 
   // Reset form status when role changes
   useEffect(() => {
     setIsSuccess(false);
     setAuthError(null);
+    setSigStep('idle');
+    setSignatureData(null);
+    setCertificates([]);
   }, [mockUserRole]);
 
   const handleVerifyLaw = async () => {
@@ -97,13 +106,7 @@ export function HITL() {
             title: "Súmula Vinculante / STJ",
             content: "Precedente consolidado: É inadmissível a chamada progressão per saltum de regime prisional, mas a inexistência de vaga no regime adequado não pode prejudicar o apenado (Súmula Vinculante 56)."
         });
-    } else if (lowerTerm.includes("52") || lowerTerm.includes("falta")) {
-        setLawSummary({
-            title: "Lei de Execução Penal - Art. 52",
-            content: "A prática de fato previsto como crime doloso constitui falta grave e, quando ocasione subversão da ordem ou disciplina internas, sujeita o preso provisório, ou condenado, ao regime disciplinar diferenciado."
-        });
     } else {
-        // Random fallback: 70% success generic, 30% not found
         if (Math.random() > 0.3) {
              setLawSummary({
                 title: "Legislação Identificada",
@@ -116,74 +119,83 @@ export function HITL() {
     setIsVerifyingLaw(false);
   };
 
+  // --- WebPKI Handlers ---
+  const startSignatureFlow = async () => {
+    setSigStep('detecting');
+    try {
+      const isReady = await webPkiService.init();
+      if (isReady) {
+        const certs = await webPkiService.listCertificates();
+        setCertificates(certs);
+        setSigStep('selecting');
+        if (certs.length > 0) setSelectedCert(certs[0].thumbprint);
+      }
+    } catch (e) {
+      setAuthError("Erro ao comunicar com componente WebPKI. Verifique se o Token está conectado.");
+      setSigStep('idle');
+    }
+  };
+
+  const performSignature = async () => {
+    if (!selectedCert) return;
+    setSigStep('signing');
+    
+    try {
+      const certObj = certificates.find(c => c.thumbprint === selectedCert);
+      if (!certObj) throw new Error("Certificado inválido");
+
+      const dataToSign = form.getValues("dispatchText") || "Conteúdo Vazio";
+      const hash = await webPkiService.signData(selectedCert, dataToSign);
+      
+      setSignatureData({ hash, cert: certObj });
+      form.setValue("signatureHash", hash);
+      setSigStep('signed');
+    } catch (e) {
+      setAuthError("Falha na operação criptográfica. Senha do Token incorreta ou bloqueada.");
+      setSigStep('selecting');
+    }
+  };
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    // Validar se foi assinado
+    if (!signatureData) {
+        setAuthError("A assinatura digital com Token ICP-Brasil é obrigatória.");
+        return;
+    }
+
     setIsLoading(true);
     setAuthError(null);
-
-    // --- IDENTITY EXTRACTION (Simulation) ---
-    console.log(`[Security] Validating Identity. Role: ${mockUserRole}`);
-    
     const isJuiz = mockUserRole === "JUIZ";
 
     try {
-        // Atualiza o Mock Data para refletir a alteração na tela anterior
         const currentCase = mockMyCases.find(c => c.id === taskId);
         
-        // --- AUDIT LOGGING (DynamoDB) ---
         await dynamoService.putItem({
           CaseId: taskId || "unknown",
-          ActionType: isJuiz ? "JUDICIAL_DECISION" : `${mockUserRole}_ACTION`,
+          ActionType: isJuiz ? "JUDICIAL_DECISION_SIGNED" : `${mockUserRole}_ACTION_SIGNED`,
           User: mockUserRole.toLowerCase() + ".user",
           Role: mockUserRole,
-          Details: `Ação: ${values.actionType}. Observação Legal: ${values.legalObservation || 'N/A'}`,
+          Details: `Ação: ${values.actionType}. Hash ICP: ${signatureData.hash}`,
           Timestamp: new Date().toISOString()
         });
 
+        // Simulações de sucesso baseadas no Role (mantido da versão anterior)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         if (isJuiz) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
             if (currentCase) {
                 currentCase.status = "Julgado / Decisão Proferida";
-                currentCase.priority = "Baixa"; // Caso resolvido
+                currentCase.priority = "Baixa";
             }
-            setSuccessMessage("O despacho foi assinado digitalmente e a decisão registrada.");
-            setIsSuccess(true);
-        } else if (mockUserRole === "POLICIA") {
-             // --- FLUXO DE POLÍCIA ---
-             await new Promise(resolve => setTimeout(resolve, 1000));
-             if (currentCase) {
-                 if (values.actionType === 'registro_ocorrencia') {
-                    currentCase.status = "Suspenso (Falta Grave)";
-                    currentCase.priority = "Alta"; // Prioridade para o Juiz analisar a falta
-                 } else {
-                    currentCase.status = "Diligência Policial Cumprida";
-                 }
-             }
-             setSuccessMessage("Ocorrência registrada no sistema prisional e notificação enviada ao Juízo da Execução.");
-             setIsSuccess(true);
-        } else if (mockUserRole === "PROMOTOR") {
-             await new Promise(resolve => setTimeout(resolve, 1000));
-             if (currentCase) {
-                 currentCase.status = "Com Parecer do MP";
-             }
-             setSuccessMessage("Parecer Ministerial juntado aos autos com sucesso. O processo segue para decisão.");
-             setIsSuccess(true);
-        } else if (mockUserRole === "ADVOGADO" || mockUserRole === "DEFENSOR") {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            if (currentCase) {
-                currentCase.status = "Petição Juntada";
-            }
-            setSuccessMessage(mockUserRole === "DEFENSOR" 
-                ? "Manifestação da Defensoria protocolada com prerrogativa de prazo em dobro." 
-                : "Petição protocolada e recibo gerado. O cartório será notificado.");
-            setIsSuccess(true);
+            setSuccessMessage("Decisão assinada digitalmente e registrada no Blockchain do TJ.");
         } else {
-            await new Promise(resolve => setTimeout(resolve, 1000));
             if (currentCase) {
-                currentCase.status = values.actionType === 'concluso' ? "Concluso para Julgamento" : "Em Análise (HITL)";
+                currentCase.status = "Movimentação Assinada";
             }
-            setSuccessMessage("Status processual atualizado. O caso foi encaminhado para a próxima fase.");
-            setIsSuccess(true);
+            setSuccessMessage("Documento assinado e protocolado com sucesso.");
         }
+        setIsSuccess(true);
+
     } catch (error) {
         console.error(error);
         setAuthError("Erro ao processar solicitação.");
@@ -192,7 +204,6 @@ export function HITL() {
     }
   }
 
-  // Helper para renderizar ícone do papel
   const getRoleIcon = () => {
     switch(mockUserRole) {
         case "JUIZ": return <Gavel className="h-6 w-6" />;
@@ -204,49 +215,19 @@ export function HITL() {
     }
   };
 
-  // Helper para cor do papel
   const getRoleColorClass = () => {
     switch(mockUserRole) {
         case "JUIZ": return "bg-primary text-primary-foreground";
-        case "PROMOTOR": return "bg-destructive text-destructive-foreground"; // Vermelho MP
-        case "ADVOGADO": return "bg-slate-800 text-white"; // Escuro OAB
-        case "DEFENSOR": return "bg-emerald-600 text-white"; // Verde Defensoria
-        case "POLICIA": return "bg-slate-900 text-white"; // Polícia Penal (Dark Slate)
+        case "PROMOTOR": return "bg-destructive text-destructive-foreground";
+        case "ADVOGADO": return "bg-slate-800 text-white";
+        case "DEFENSOR": return "bg-emerald-600 text-white";
+        case "POLICIA": return "bg-slate-900 text-white";
         default: return "bg-secondary text-secondary-foreground";
     }
   };
 
-  // --- BLOCKING LOGIC: Mandatory Case Selection ---
-  if (!taskId) {
-    return (
-        <div className="flex flex-col items-center justify-center h-[80vh] space-y-6 animate-in fade-in zoom-in duration-300">
-            <div className="h-24 w-24 bg-primary/10 rounded-full flex items-center justify-center mb-2">
-                <Briefcase className="h-12 w-12 text-primary" />
-            </div>
-            <div className="text-center space-y-2 max-w-lg px-4">
-                <h2 className="text-3xl font-bold text-primary">Seleção de Caso Necessária</h2>
-                <p className="text-muted-foreground text-lg">
-                    A Tramitação Processual requer um contexto específico. <br/>
-                    Por favor, selecione um processo na sua fila de trabalho para iniciar a análise.
-                </p>
-            </div>
-            <Button onClick={() => navigate('/meus-casos')} size="lg" className="gap-2 text-md px-8 h-12">
-                <Search className="h-5 w-5" />
-                Ir para Meus Casos
-            </Button>
-        </div>
-    );
-  }
-
-  if (!currentCase) {
-     return (
-        <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-            <AlertCircle className="h-12 w-12 text-destructive" />
-            <h2 className="text-xl font-bold">Caso não encontrado</h2>
-            <p className="text-muted-foreground">O ID fornecido não corresponde a nenhum processo ativo.</p>
-            <Button onClick={() => navigate('/meus-casos')} variant="outline">Voltar para Lista</Button>
-        </div>
-     );
+  if (!taskId || !currentCase) {
+    return <div>Caso não encontrado</div>;
   }
 
   if (isSuccess) {
@@ -262,15 +243,20 @@ export function HITL() {
             <p className="text-muted-foreground max-w-md mx-auto">
             {successMessage}
             </p>
+            {signatureData && (
+                <div className="mt-4 p-3 bg-muted/30 rounded border text-xs font-mono text-muted-foreground break-all max-w-lg">
+                    <strong>Hash ICP-Brasil:</strong> {signatureData.hash}
+                </div>
+            )}
         </div>
         
         <div className="flex gap-4">
             <Button onClick={() => navigate(-1)} variant="outline" className="gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                Voltar para Tela Anterior
+                Voltar
             </Button>
             <Button onClick={() => setIsSuccess(false)}>
-                Nova Ação no Mesmo Processo
+                Nova Ação
             </Button>
         </div>
       </div>
@@ -290,26 +276,15 @@ export function HITL() {
                 </div>
                 <div>
                 <h2 className="text-2xl md:text-3xl font-bold text-primary">
-                    {mockUserRole === 'JUIZ' ? "Decisão Judicial" : 
-                     mockUserRole === 'PROMOTOR' ? "Parecer Ministerial" :
-                     mockUserRole === 'ADVOGADO' ? "Peticionamento Eletrônico" :
-                     mockUserRole === 'DEFENSOR' ? "Manifestação Defensoria" :
-                     mockUserRole === 'POLICIA' ? "Ocorrência / Escolta" :
-                     "Tramitação Processual"}
+                    {mockUserRole === 'JUIZ' ? "Decisão Judicial" : "Tramitação Processual"}
                 </h2>
                 <p className="text-muted-foreground text-sm md:text-base">
-                    {mockUserRole === 'JUIZ' ? "Supervisão humana final e assinatura de decisão." : 
-                     mockUserRole === 'PROMOTOR' ? "Análise do Ministério Público e emissão de parecer." :
-                     mockUserRole === 'ADVOGADO' ? "Protocolo de pedidos e manifestações da defesa." :
-                     mockUserRole === 'DEFENSOR' ? "Atuação em prol do assistido hipossuficiente." :
-                     mockUserRole === 'POLICIA' ? "Registro de incidentes e logística prisional." :
-                     "Análise técnica e atualização de andamento."}
+                    Assinatura Digital ICP-Brasil
                 </p>
                 </div>
             </div>
         </div>
         
-        {/* Role Switcher for Demo */}
         <div className="flex items-center gap-2 bg-muted/30 p-2 rounded border border-dashed border-muted-foreground/30 self-start md:self-center">
             <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">Simular Role:</span>
             <select 
@@ -336,7 +311,7 @@ export function HITL() {
       )}
 
       {/* Case Context Header */}
-      <div className="bg-muted/40 border border-primary/10 rounded-lg p-4 flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center animate-in fade-in slide-in-from-top-2 shadow-sm">
+      <div className="bg-muted/40 border border-primary/10 rounded-lg p-4 flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center shadow-sm">
           <div>
               <div className="flex items-center gap-2 text-primary mb-1">
                   <FileText className="h-5 w-5" />
@@ -347,37 +322,22 @@ export function HITL() {
                       <User className="h-4 w-4" />
                       <span className="font-medium text-foreground/80">{currentCase.inmateName}</span>
                   </div>
-                  <span className="text-xs opacity-50">|</span>
-                  <span className="bg-background px-2 py-0.5 rounded border text-xs">{currentCase.type}</span>
               </div>
           </div>
-          <div className="flex flex-col items-end gap-1">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Status Atual</span>
-                <Badge variant="secondary" className="font-medium">
-                  {currentCase.status}
-                </Badge>
-          </div>
+          <Badge variant="secondary" className="font-medium">
+            {currentCase.status}
+          </Badge>
       </div>
 
       <Card className={`border-l-4 ${
           mockUserRole === 'JUIZ' ? 'border-l-primary' :
           mockUserRole === 'PROMOTOR' ? 'border-l-destructive' :
-          mockUserRole === 'ADVOGADO' ? 'border-l-slate-800' :
-          mockUserRole === 'DEFENSOR' ? 'border-l-emerald-600' :
-          mockUserRole === 'POLICIA' ? 'border-l-slate-900' :
           'border-l-secondary'
       }`}>
         <CardHeader>
-          <CardTitle>
-            {mockUserRole === 'JUIZ' ? "Registro de Sentença/Despacho" : 
-             mockUserRole === 'PROMOTOR' ? "Manifestação do Ministério Público" :
-             mockUserRole === 'ADVOGADO' ? "Nova Petição / Requerimento" :
-             mockUserRole === 'DEFENSOR' ? "Peticionamento Defensoria" :
-             mockUserRole === 'POLICIA' ? "Boletim de Ocorrência / Logística" :
-             "Parecer Técnico / Movimentação"}
-          </CardTitle>
+          <CardTitle>Formalização da Ação</CardTitle>
           <CardDescription>
-             Preencha os campos abaixo para formalizar sua ação no processo.
+             Preencha e assine digitalmente com seu Token A3.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -397,42 +357,10 @@ export function HITL() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {mockUserRole === 'JUIZ' ? (
-                            <>
-                                <SelectItem value="concessao">Concessão de Benefício</SelectItem>
-                                <SelectItem value="negacao">Negação de Pedido</SelectItem>
-                                <SelectItem value="arquivamento">Arquivamento</SelectItem>
-                                <SelectItem value="diligencia">Solicitar Diligência</SelectItem>
-                            </>
-                        ) : mockUserRole === 'PROMOTOR' ? (
-                            <>
-                                <SelectItem value="parecer_favoravel">Parecer Favorável</SelectItem>
-                                <SelectItem value="parecer_contrario">Parecer Contrário</SelectItem>
-                                <SelectItem value="cota_ministerial">Cota (Solicitar Diligência)</SelectItem>
-                                <SelectItem value="ciencia">Ciência de Decisão</SelectItem>
-                            </>
-                        ) : (mockUserRole === 'ADVOGADO' || mockUserRole === 'DEFENSOR') ? (
-                            <>
-                                <SelectItem value="pedido_progressao">Pedido de Progressão</SelectItem>
-                                <SelectItem value="juntada_documento">Juntada de Documento</SelectItem>
-                                <SelectItem value="alegacoes_finais">Alegações Finais</SelectItem>
-                                <SelectItem value="habeas_corpus">Habeas Corpus</SelectItem>
-                            </>
-                        ) : mockUserRole === 'POLICIA' ? (
-                            <>
-                                <SelectItem value="registro_ocorrencia">Registrar Falta Disciplinar (Grave/Média)</SelectItem>
-                                <SelectItem value="confirmacao_escolta">Confirmar Agendamento de Escolta</SelectItem>
-                                <SelectItem value="captura">Comunicar Recaptura / Prisão</SelectItem>
-                                <SelectItem value="atestado_conduta">Emitir Atestado de Conduta</SelectItem>
-                            </>
-                        ) : (
-                            <>
-                                <SelectItem value="parecer_favoravel">Parecer Favorável</SelectItem>
-                                <SelectItem value="parecer_desfavoravel">Parecer Desfavorável</SelectItem>
-                                <SelectItem value="solicitar_documentos">Solicitar Documentos</SelectItem>
-                                <SelectItem value="concluso">Remeter para Conclusão</SelectItem>
-                            </>
-                        )}
+                        <SelectItem value="concessao">Concessão de Benefício</SelectItem>
+                        <SelectItem value="negacao">Negação de Pedido</SelectItem>
+                        <SelectItem value="diligencia">Solicitar Diligência</SelectItem>
+                        <SelectItem value="parecer">Emitir Parecer</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -445,14 +373,8 @@ export function HITL() {
                 name="dispatchText"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                        {mockUserRole === 'JUIZ' ? "Texto da Decisão" : 
-                         (mockUserRole === 'ADVOGADO' || mockUserRole === 'DEFENSOR') ? "Teor da Petição" :
-                         mockUserRole === 'POLICIA' ? "Relatório da Ocorrência" :
-                         "Conteúdo da Manifestação"}
-                    </FormLabel>
+                    <FormLabel>Teor do Documento</FormLabel>
                     <FormControl>
-                      {/* SmartDecisionEditor adaptado para todos os roles */}
                       <SmartDecisionEditor 
                         initialValue={field.value}
                         onChange={field.onChange}
@@ -462,7 +384,7 @@ export function HITL() {
                             type: currentCase.type,
                             status: currentCase.status
                         }}
-                        documents={currentCase.documents} // Passa documentos para o RAG
+                        documents={currentCase.documents}
                       />
                     </FormControl>
                     <FormMessage />
@@ -475,7 +397,7 @@ export function HITL() {
                 name="legalObservation"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Referência Legal / Súmula</FormLabel>
+                    <FormLabel>Referência Legal</FormLabel>
                     <div className="flex gap-2">
                         <FormControl>
                             <Input placeholder="Ex: Art. 112 da LEP" {...field} />
@@ -485,34 +407,21 @@ export function HITL() {
                             variant="outline" 
                             onClick={handleVerifyLaw}
                             disabled={isVerifyingLaw || !field.value}
-                            title="Verificar existência da lei"
-                            className="shrink-0"
                         >
                             {isVerifyingLaw ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                            <span className="ml-2 hidden sm:inline">Verificar</span>
                         </Button>
                     </div>
-                    
-                    {/* Law Summary Display */}
                     {lawSummary && (
-                        <div className="mt-2 p-3 bg-muted/50 rounded-md border border-primary/20 text-sm animate-in fade-in slide-in-from-top-1">
+                        <div className="mt-2 p-3 bg-muted/50 rounded-md border border-primary/20 text-sm">
                             <div className="flex items-center gap-2 font-semibold text-primary mb-1">
                                 <BookOpen className="h-4 w-4" />
                                 {lawSummary.title}
                             </div>
-                            <p className="text-muted-foreground leading-relaxed text-xs sm:text-sm">
+                            <p className="text-muted-foreground text-xs">
                                 {lawSummary.content}
                             </p>
                         </div>
                     )}
-                    
-                    {lawNotFound && (
-                        <div className="mt-2 p-2 bg-destructive/10 rounded-md border border-destructive/20 text-xs text-destructive flex items-center gap-2 animate-in fade-in">
-                            <AlertCircle className="h-4 w-4" />
-                            Norma não encontrada na base de conhecimento ou indisponível.
-                        </div>
-                    )}
-
                     <FormMessage />
                   </FormItem>
                 )}
@@ -520,95 +429,96 @@ export function HITL() {
 
               <Separator />
 
-              <FormField
-                control={form.control}
-                name="humanCheck"
-                render={({ field }) => (
-                  <FormItem 
-                    className={`
-                        flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 transition-all duration-300
-                        ${field.value 
-                            ? "bg-success/10 border-success/50 shadow-[0_0_15px_rgba(34,197,94,0.1)]" 
-                            : "bg-muted/20 border-border"
-                        }
-                    `}
-                  >
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className={field.value ? "data-[state=checked]:bg-success data-[state=checked]:border-success" : ""}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none flex-1">
-                      <div className="flex items-center justify-between">
-                        <FormLabel className={`font-bold transition-colors ${field.value ? "text-success" : ""}`}>
-                            Confirmação de Autoria
-                        </FormLabel>
-                        {field.value && (
-                            <div className="flex items-center gap-1 text-xs font-bold text-success animate-in fade-in slide-in-from-right-2">
-                                <ShieldCheck className="h-3 w-3" />
-                                Assinatura Digital Pronta
-                            </div>
-                        )}
-                      </div>
-                      <FormDescription className={field.value ? "text-success/80" : ""}>
-                        {mockUserRole === 'JUIZ' ? "Declaro que revisei as sugestões da IA e assumo a autoria desta decisão." :
-                         mockUserRole === 'PROMOTOR' ? "Confirmo o teor deste parecer ministerial." :
-                         mockUserRole === 'ADVOGADO' ? "Responsabilizo-me pelo teor desta petição e documentos anexos." :
-                         mockUserRole === 'DEFENSOR' ? "Certifico a atuação em defesa do assistido." :
-                         mockUserRole === 'POLICIA' ? "Certifico a veracidade da ocorrência e anexo provas materiais." :
-                         "Declaro que as informações prestadas são verdadeiras."}
-                      </FormDescription>
-                      
-                      {field.value && (
-                        <div className="pt-2 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in">
-                            <Fingerprint className="h-3 w-3" />
-                            <span>Identidade vinculada: <strong>
-                                {mockUserRole === 'JUIZ' ? 'Juiz Dr. Silva' : 
-                                 mockUserRole === 'PROMOTOR' ? 'Promotor Dr. Souza' :
-                                 mockUserRole === 'ADVOGADO' ? 'Adv. Dr. Carlos' :
-                                 mockUserRole === 'DEFENSOR' ? 'Defensor Público Dr. André' :
-                                 mockUserRole === 'POLICIA' ? 'Policial Penal Inspetor Gomes' :
-                                 'Analista Ana Paula'}
-                            </strong></span>
-                        </div>
-                      )}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* WebPKI Signature Section */}
+              <div className="space-y-4 rounded-lg border p-4 bg-slate-50">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold flex items-center gap-2 text-slate-800">
+                        <Usb className="h-4 w-4" />
+                        Assinatura Digital (Token A3)
+                    </h3>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/22/Icp-brasil.png" alt="ICP-Brasil" className="h-6 opacity-80" />
+                </div>
 
-              <div className="flex justify-end pt-4 gap-3">
+                {sigStep === 'idle' && (
+                    <div className="text-center py-4">
+                        <p className="text-sm text-muted-foreground mb-3">
+                            Conecte seu Token USB ou Smartcard para assinar este documento.
+                        </p>
+                        <Button type="button" onClick={startSignatureFlow} className="gap-2 bg-slate-800 hover:bg-slate-700">
+                            <RefreshCw className="h-4 w-4" />
+                            Detectar Certificados
+                        </Button>
+                    </div>
+                )}
+
+                {sigStep === 'detecting' && (
+                    <div className="flex flex-col items-center py-6 gap-2">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm text-muted-foreground">Comunicando com WebPKI...</p>
+                    </div>
+                )}
+
+                {(sigStep === 'selecting' || sigStep === 'signing') && (
+                    <div className="space-y-4 animate-in fade-in">
+                        <div className="space-y-2">
+                            <label className="text-xs font-medium text-muted-foreground">Certificado Selecionado</label>
+                            <Select value={selectedCert} onValueChange={setSelectedCert} disabled={sigStep === 'signing'}>
+                                <SelectTrigger className="bg-white">
+                                    <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {certificates.map(cert => (
+                                        <SelectItem key={cert.thumbprint} value={cert.thumbprint}>
+                                            {cert.subjectName} (Val: {new Date(cert.validityEnd).toLocaleDateString()})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        {sigStep === 'signing' ? (
+                            <div className="flex items-center justify-center gap-2 py-2 text-sm text-primary font-medium">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Processando Assinatura no Hardware...
+                            </div>
+                        ) : (
+                            <Button type="button" onClick={performSignature} className="w-full gap-2" disabled={!selectedCert}>
+                                <Key className="h-4 w-4" />
+                                Assinar Digitalmente
+                            </Button>
+                        )}
+                    </div>
+                )}
+
+                {sigStep === 'signed' && signatureData && (
+                    <div className="bg-green-50 border border-green-200 rounded p-3 flex items-start gap-3 animate-in zoom-in">
+                        <ShieldCheck className="h-8 w-8 text-green-600 shrink-0" />
+                        <div>
+                            <h4 className="text-sm font-bold text-green-800">Documento Assinado com Sucesso</h4>
+                            <p className="text-xs text-green-700 mt-1">
+                                <strong>Certificado:</strong> {signatureData.cert.subjectName}<br/>
+                                <strong>CPF:</strong> {signatureData.cert.pkiBrazil.cpf}<br/>
+                                <strong>Carimbo de Tempo:</strong> {new Date().toLocaleString()}
+                            </p>
+                        </div>
+                    </div>
+                )}
+              </div>
+
+              <div className="flex justify-end pt-2 gap-3">
                 <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
                     Cancelar
                 </Button>
                 <Button 
                     type="submit" 
                     size="lg" 
-                    disabled={isLoading || !isHumanChecked} 
-                    className={`
-                        w-full md:w-auto gap-2 transition-all duration-300
-                        ${isHumanChecked ? "shadow-lg scale-105" : "opacity-70 grayscale"}
-                        ${mockUserRole === 'PROMOTOR' ? 'bg-destructive hover:bg-destructive/90' : 
-                          mockUserRole === 'ADVOGADO' ? 'bg-slate-800 hover:bg-slate-700' : 
-                          mockUserRole === 'DEFENSOR' ? 'bg-emerald-600 hover:bg-emerald-700' : 
-                          mockUserRole === 'POLICIA' ? 'bg-slate-900 hover:bg-slate-800' : ''}
-                    `}
+                    disabled={isLoading || sigStep !== 'signed'} 
+                    className="gap-2"
                 >
                   {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Processando...
-                    </>
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Protocolando...</>
                   ) : (
-                    mockUserRole === 'JUIZ' ? <><Gavel className="h-4 w-4" /> Assinar e Decidir</> :
-                    mockUserRole === 'PROMOTOR' ? <><Scale className="h-4 w-4" /> Assinar Parecer</> :
-                    mockUserRole === 'ADVOGADO' ? <><PenTool className="h-4 w-4" /> Protocolar</> :
-                    mockUserRole === 'DEFENSOR' ? <><Shield className="h-4 w-4" /> Protocolar (DP)</> :
-                    mockUserRole === 'POLICIA' ? <><Lock className="h-4 w-4" /> Registrar Ocorrência</> :
-                    <><ArrowRight className="h-4 w-4" /> Atualizar Status</>
+                    <><ArrowRight className="h-4 w-4" /> Finalizar Protocolo</>
                   )}
                 </Button>
               </div>

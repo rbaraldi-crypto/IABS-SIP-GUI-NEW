@@ -11,6 +11,7 @@ import { CaseDistribution } from '@/pages/CaseDistribution';
 import { CoordinatorDistribution } from '@/pages/CoordinatorDistribution';
 import { StatsDashboard } from '@/pages/StatsDashboard';
 import { CitizenPortal } from '@/pages/CitizenPortal';
+import { InmatePortal } from '@/pages/InmatePortal';
 import { ControlRoom } from '@/pages/ControlRoom';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 
@@ -21,6 +22,7 @@ function App() {
         <Routes>
           {/* Rotas Públicas / Standalone */}
           <Route path="/cidadao" element={<CitizenPortal />} />
+          <Route path="/apenado" element={<InmatePortal />} />
 
           {/* Main Layout Routes (Internal System) */}
           <Route path="/" element={<MainLayout />}>

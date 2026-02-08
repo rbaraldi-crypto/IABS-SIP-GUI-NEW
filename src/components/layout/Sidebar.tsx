@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, User, Scale, FileText, Gavel, ShieldAlert, 
-  Globe, Briefcase, Users, Building2, Eye, FileCheck 
+  Globe, Briefcase, Users, Building2, Eye, FileCheck, Trophy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +19,7 @@ export function Sidebar() {
       items: [
         { label: t('nav.dashboard'), path: '/dashboard', icon: LayoutDashboard },
         { label: "Modo Cidadão (Público)", path: '/cidadao', icon: Users },
+        { label: "Portal do Apenado (Interno)", path: '/apenado', icon: Trophy },
         { label: "Modo Controle (Auditoria)", path: '/controle', icon: Eye },
       ]
     },
