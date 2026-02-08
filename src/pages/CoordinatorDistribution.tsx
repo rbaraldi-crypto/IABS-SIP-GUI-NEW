@@ -1,101 +1,126 @@
-import { mockDistributionUsers } from '@/data/mockData';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Users, Briefcase, AlertTriangle, TrendingUp, Download } from 'lucide-react';
+import { useState } from "react";
+import { 
+  Card, CardContent, CardHeader, CardTitle, CardDescription 
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { 
+  Users, BarChart3, AlertTriangle, CheckCircle2, MoreVertical, 
+  ArrowRightLeft, Briefcase 
+} from "lucide-react";
+import { mockDistributionUsers, DistributionUser } from "@/data/mockData";
+import { Button } from "@/components/ui/button";
+import { 
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 export function CoordinatorDistribution() {
-  const workloadData = mockDistributionUsers.map(u => ({
-    name: u.name.split(' ')[0],
-    completed: Math.floor(Math.random() * 20) + 5,
-    pending: u.casesCount,
-    role: u.role
-  }));
+  const [users, setUsers] = useState<DistributionUser[]>(mockDistributionUsers);
+
+  const getWorkloadColor = (load: number) => {
+    if (load > 80) return "bg-destructive";
+    if (load > 60) return "bg-warning";
+    return "bg-success";
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-primary">Gestão de Equipe</h2>
-          <p className="text-muted-foreground">Painel do Coordenador para balanceamento de carga.</p>
+          <h2 className="text-3xl font-bold text-primary flex items-center gap-2">
+            <Users className="h-8 w-8" />
+            Gestão de Equipe
+          </h2>
+          <p className="text-muted-foreground">
+            Monitoramento de carga de trabalho e rebalanceamento.
+          </p>
         </div>
-        <div className="flex gap-2">
-            <Button variant="outline"><Download className="h-4 w-4 mr-2" /> Relatório</Button>
-            <Button>Redistribuir Cargas</Button>
-        </div>
+        <Button variant="outline" className="gap-2">
+          <BarChart3 className="h-4 w-4" /> Relatório de Produtividade
+        </Button>
       </div>
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total na Equipe</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{mockDistributionUsers.length}</div>
-                <p className="text-xs text-muted-foreground">Analistas ativos</p>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Processos Ativos</CardTitle>
-                <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">
-                    {mockDistributionUsers.reduce((acc, u) => acc + u.casesCount, 0)}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {users.map((user) => (
+          <Card key={user.id} className="relative overflow-hidden hover:shadow-md transition-shadow">
+            {user.workload > 80 && (
+              <div className="absolute top-0 right-0 p-2">
+                <div className="flex items-center gap-1 text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded-full">
+                  <AlertTriangle className="h-3 w-3" /> SOBRECARGA
                 </div>
-                <p className="text-xs text-muted-foreground">Em análise técnica</p>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Sobrecarga</CardTitle>
-                <AlertTriangle className="h-4 w-4 text-destructive" />
+              </div>
+            )}
+            
+            <CardHeader className="flex flex-row items-center gap-4 pb-2">
+              <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
+                <AvatarImage src={user.avatar} />
+                <AvatarFallback>{user.name.substring(0,2)}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col overflow-hidden">
+                <CardTitle className="text-base truncate" title={user.name}>{user.name}</CardTitle>
+                <CardDescription className="text-xs truncate">{user.role}</CardDescription>
+              </div>
             </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold text-destructive">
-                    {mockDistributionUsers.filter(u => u.workload > 80).length}
+            
+            <CardContent className="space-y-4">
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Ocupação</span>
+                  <span className="font-bold">{user.workload}%</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Analistas acima de 80%</p>
+                <Progress value={user.workload} className="h-2" indicatorClassName={getWorkloadColor(user.workload)} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-muted/50 p-2 rounded text-center">
+                  <span className="block font-bold text-lg">{user.casesCount}</span>
+                  <span className="text-muted-foreground">Casos Ativos</span>
+                </div>
+                <div className="bg-muted/50 p-2 rounded text-center">
+                  <span className="block font-bold text-lg">{user.maxCases}</span>
+                  <span className="text-muted-foreground">Capacidade</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <Badge variant="outline" className={
+                  user.status === 'Disponível' ? 'text-success border-success/30 bg-success/5' : 
+                  user.status === 'Ausente' ? 'text-muted-foreground' : 'text-warning border-warning/30 bg-warning/5'
+                }>
+                  {user.status}
+                </Badge>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem className="gap-2">
+                      <Briefcase className="h-4 w-4" /> Ver Casos
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="gap-2">
+                      <ArrowRightLeft className="h-4 w-4" /> Redistribuir
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Produtividade</CardTitle>
-                <TrendingUp className="h-4 w-4 text-success" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold text-success">+12%</div>
-                <p className="text-xs text-muted-foreground">Em relação à semana anterior</p>
-            </CardContent>
-        </Card>
+          </Card>
+        ))}
       </div>
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="col-span-2 md:col-span-1">
-            <CardHeader>
-                <CardTitle>Carga de Trabalho por Analista</CardTitle>
-                <CardDescription>Comparativo entre processos pendentes e concluídos.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={workloadData} layout="vertical" margin={{ left: 20 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                            <XAxis type="number" />
-                            <YAxis dataKey="name" type="category" width={80} />
-                            <Tooltip 
-                                cursor={{fill: 'transparent'}}
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                            />
-                            <Legend />
-                            <Bar dataKey="pending" name="Pendentes" stackId="a" fill="#0B3C5D" radius={[0, 4, 4, 0]} />
-                            <Bar dataKey="completed" name="Concluídos" stackId="a" fill="#1F7A8C" radius={[0, 4, 4, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            </CardContent>
-        </Card>
-      </div>
+
+      <Card className="bg-muted/20 border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-8 text-center space-y-2">
+          <CheckCircle2 className="h-10 w-10 text-muted-foreground/50" />
+          <h3 className="font-semibold text-muted-foreground">Tudo sob controle</h3>
+          <p className="text-sm text-muted-foreground max-w-md">
+            A carga de trabalho está distribuída dentro dos parâmetros aceitáveis. Nenhuma ação crítica necessária no momento.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

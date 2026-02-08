@@ -16,9 +16,15 @@ import {
     DropdownMenuItem, 
     DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, Scale, FileText, AlertCircle, CheckCircle2, Gavel, ArrowUpRight, Lock, ExternalLink, Paperclip, Eye, Edit2, RefreshCw, Loader2, ShieldAlert, PieChart, Split, ArrowRightLeft, PenTool, Shield, Calendar, MapPin, Video, Clock, CalendarPlus, Download, Siren } from 'lucide-react';
+import { 
+  ArrowLeft, Scale, FileText, AlertCircle, CheckCircle2, Gavel, ArrowUpRight, Lock, 
+  ExternalLink, Paperclip, Eye, Edit2, RefreshCw, Loader2, ShieldAlert, PieChart, 
+  Split, ArrowRightLeft, PenTool, Shield, Calendar, MapPin, Video, Clock, 
+  CalendarPlus, Download, Siren, Maximize2, Minimize2, BookOpen, Sparkles 
+} from 'lucide-react';
 import { PdfViewer } from '@/components/business/PdfViewer';
 import { PrecedentComparator } from '@/components/business/PrecedentComparator';
+import { SmartDecisionEditor } from '@/components/business/SmartDecisionEditor';
 import { dynamoService } from '@/services/awsMock';
 
 // Interface para a resposta da API
@@ -57,6 +63,10 @@ export function CaseReview() {
   const [authError, setAuthError] = useState<string | null>(null);
   // Mock Identity for demonstration
   const [mockUserRole, setMockUserRole] = useState<UserRole>("JUIZ");
+
+  // Focus Mode State
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [focusDraft, setFocusDraft] = useState("");
 
   const caseData = mockMyCases.find(c => c.id === id);
 
@@ -177,8 +187,6 @@ export function CaseReview() {
     const description = `Tipo: ${caseData.hearingType}\nProcesso: ${caseData.caseNumber}\nLink Virtual: ${caseData.virtualLink || 'N/A'}`;
     const location = caseData.hearingLocation || 'Tribunal de Justiça';
 
-    // Formatação para Google (YYYYMMDDTHHmmssZ - usando UTC para simplificar ou local sem Z)
-    // Usando formato local YYYYMMDDTHHmmss para evitar problemas de fuso horário simples
     const formatGoogleDate = (date: Date) => {
       return date.toISOString().replace(/-|:|\.\d\d\d/g, "");
     };
@@ -246,6 +254,16 @@ END:VCALENDAR`;
         </div>
         
         <div className="ml-auto flex items-center gap-4">
+            {/* Focus Mode Button */}
+            <Button 
+                variant="outline" 
+                className="gap-2 border-primary/30 hover:bg-primary/5 hidden md:flex"
+                onClick={() => setIsFocusMode(true)}
+            >
+                <Maximize2 className="h-4 w-4" />
+                Modo Foco
+            </Button>
+
             <div className="flex items-center gap-2 bg-muted/30 p-2 rounded border border-dashed border-muted-foreground/30">
                 <span className="text-xs font-mono text-muted-foreground">Simular Role:</span>
                 <select 
@@ -735,6 +753,78 @@ END:VCALENDAR`;
           )}
         </DialogContent>
       </Dialog>
+
+      {/* FOCUS MODE OVERLAY */}
+      {isFocusMode && (
+        <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-300">
+            {/* Focus Header */}
+            <div className="flex items-center justify-between px-6 py-3 border-b bg-muted/30">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-full">
+                        <BookOpen className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-primary">Modo de Leitura Imersiva</h2>
+                        <p className="text-xs text-muted-foreground">Processo {caseData.caseNumber} • {caseData.inmateName}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="animate-pulse border-primary/50 text-primary">
+                        <Lock className="h-3 w-3 mr-1" />
+                        Ambiente Seguro
+                    </Badge>
+                    <Button variant="destructive" size="sm" onClick={() => setIsFocusMode(false)} className="gap-2">
+                        <Minimize2 className="h-4 w-4" />
+                        Sair do Modo Foco
+                    </Button>
+                </div>
+            </div>
+
+            {/* Main Split Content */}
+            <div className="flex-1 grid grid-cols-2 overflow-hidden">
+                {/* Left: PDF Viewer */}
+                <div className="border-r bg-slate-100 p-4 flex flex-col">
+                    <PdfViewer caseId={id || "unknown"} onLogAction={handleAuditLog} />
+                </div>
+
+                {/* Right: Editor */}
+                <div className="p-6 bg-background overflow-y-auto">
+                    <div className="max-w-3xl mx-auto space-y-6">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                                <PenTool className="h-5 w-5 text-primary" />
+                                Minuta de Decisão / Anotações
+                            </h3>
+                            <Badge>Rascunho Automático</Badge>
+                        </div>
+                        
+                        <SmartDecisionEditor 
+                            initialValue={focusDraft}
+                            onChange={setFocusDraft}
+                            userRole={mockUserRole}
+                            caseContext={{
+                                inmateName: caseData.inmateName,
+                                type: caseData.type,
+                                status: caseData.status
+                            }}
+                            documents={caseData.documents} // Passando documentos para o RAG
+                        />
+                        
+                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                            <h4 className="font-bold flex items-center gap-2 mb-1">
+                                <Sparkles className="h-4 w-4" />
+                                Sugestão de IA
+                            </h4>
+                            <p>
+                                Com base nos precedentes analisados (92% similaridade), sugere-se o <strong>DEFERIMENTO</strong> do pedido, 
+                                visto que o requisito objetivo foi cumprido e não há faltas graves recentes.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }

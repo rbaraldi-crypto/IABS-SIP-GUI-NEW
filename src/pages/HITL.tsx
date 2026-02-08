@@ -462,6 +462,7 @@ export function HITL() {
                             type: currentCase.type,
                             status: currentCase.status
                         }}
+                        documents={currentCase.documents} // Passa documentos para o RAG
                       />
                     </FormControl>
                     <FormMessage />

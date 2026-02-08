@@ -1,9 +1,17 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Sparkles, RefreshCw, Check, Copy } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  Sparkles, RefreshCw, Check, Copy, FileText, 
+  Search, BookOpen, ChevronRight, AlertCircle, ScanText, CheckCircle2
+} from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent } from '@/components/ui/card';
+import { CaseDocument } from '@/data/mockData';
+import { cn } from '@/lib/utils';
 
 interface SmartDecisionEditorProps {
   initialValue: string;
@@ -14,14 +22,27 @@ interface SmartDecisionEditorProps {
     status: string;
     legalBasis?: string;
   };
-  userRole: 'JUIZ' | 'ANALISTA';
+  userRole: 'JUIZ' | 'ANALISTA' | 'PROMOTOR' | 'ADVOGADO' | 'DEFENSOR' | 'POLICIA';
+  documents?: CaseDocument[];
 }
 
-export function SmartDecisionEditor({ initialValue, onChange, caseContext, userRole }: SmartDecisionEditorProps) {
+interface ExtractedFact {
+  id: string;
+  fact: string;
+  sourceDoc: string;
+  page: number;
+  confidence: number;
+  type: 'positive' | 'negative' | 'neutral';
+}
+
+export function SmartDecisionEditor({ initialValue, onChange, caseContext, userRole, documents = [] }: SmartDecisionEditorProps) {
   const [content, setContent] = useState(initialValue);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [extractedFacts, setExtractedFacts] = useState<ExtractedFact[]>([]);
+  const [analysisComplete, setAnalysisComplete] = useState(false);
 
   // Atualiza o pai quando o conteúdo muda localmente
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -29,22 +50,90 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
     onChange(e.target.value);
   };
 
+  const analyzeDocuments = async () => {
+    if (!documents || documents.length === 0) return;
+    
+    setIsAnalyzing(true);
+    setGenerationProgress(0);
+    setExtractedFacts([]);
+
+    // Simula leitura de cada documento
+    const totalSteps = documents.length * 2;
+    let currentStep = 0;
+
+    const facts: ExtractedFact[] = [];
+
+    for (const doc of documents) {
+      // Simula tempo de processamento por documento
+      await new Promise(r => setTimeout(r, 600)); 
+      currentStep++;
+      setGenerationProgress((currentStep / totalSteps) * 100);
+
+      // Lógica Mock de Extração baseada no tipo de documento
+      if (doc.type === 'Certidão' || doc.title.includes('Boletim')) {
+        facts.push({
+          id: `fact-${doc.id}`,
+          fact: "Conduta Carcerária classificada como 'ÓTIMA'",
+          sourceDoc: doc.title,
+          page: Math.floor(Math.random() * doc.pages) + 1,
+          confidence: 98,
+          type: 'positive'
+        });
+      } else if (doc.type === 'Laudo' || doc.title.includes('Exame')) {
+        facts.push({
+          id: `fact-${doc.id}`,
+          fact: "Ausência de traços de periculosidade latente",
+          sourceDoc: doc.title,
+          page: doc.pages - 1,
+          confidence: 85,
+          type: 'positive'
+        });
+      } else if (doc.type === 'Petição') {
+        facts.push({
+          id: `fact-${doc.id}`,
+          fact: "Pedido fundamentado no Art. 112 da LEP",
+          sourceDoc: doc.title,
+          page: 2,
+          confidence: 99,
+          type: 'neutral'
+        });
+      }
+    }
+
+    setExtractedFacts(facts);
+    setIsAnalyzing(false);
+    setAnalysisComplete(true);
+    setGenerationProgress(100);
+  };
+
   const generateDraft = async () => {
     setIsGenerating(true);
     setGenerationProgress(0);
     setShowSuccess(false);
 
-    // Simulação de Streaming de IA
-    const template = userRole === 'JUIZ' 
-      ? `VISTOS, ETC.\n\nTrata-se de pedido de ${caseContext.type.toUpperCase()} formulado em favor de ${caseContext.inmateName.toUpperCase()}.\n\nDECIDO.\n\nO apenado preenche os requisitos objetivos e subjetivos, conforme atestado de conduta carcerária e cálculo de pena (Art. 112 da LEP). Não constam faltas graves nos últimos 12 meses.\n\nAnte o exposto, DEFIRO o pedido para conceder a progressão ao regime semiaberto.\n\nExpeça-se o necessário.\n\nPublique-se. Intime-se.`
-      : `CERTIFICO E DOU FÉ que, analisando os autos de execução penal de ${caseContext.inmateName}, verifico que o requisito temporal foi atingido.\n\nO cálculo de pena encontra-se correto e o atestado de conduta carcerária é favorável.\n\nEncaminho os autos conclusos para apreciação judicial, sugerindo o DEFERIMENTO do pedido, salvo melhor juízo.`;
+    // Constrói referências baseadas nos fatos extraídos
+    const citations = extractedFacts.map(f => `(cf. ${f.sourceDoc}, fls. ${f.page})`).join(' e ');
+    const behaviorFact = extractedFacts.find(f => f.fact.includes('Conduta')) 
+      ? `o atestado de conduta carcerária é favorável (vide ${extractedFacts.find(f => f.fact.includes('Conduta'))?.sourceDoc}, fl. ${extractedFacts.find(f => f.fact.includes('Conduta'))?.page})`
+      : "o atestado de conduta carcerária encontra-se nos autos";
+
+    // Templates Contextuais
+    let template = "";
+
+    if (userRole === 'JUIZ') {
+      template = `VISTOS, ETC.\n\nTrata-se de pedido de ${caseContext.type.toUpperCase()} formulado em favor de ${caseContext.inmateName.toUpperCase()}.\n\nDECIDO.\n\nCompulsando os autos, verifico que o apenado preenche os requisitos objetivos e subjetivos. Conforme análise documental, ${behaviorFact}. Não constam faltas graves nos últimos 12 meses.\n\nAdemais, o exame criminológico aponta prognóstico positivo ${citations ? citations : ""}.\n\nAnte o exposto, DEFIRO o pedido para conceder a progressão ao regime semiaberto, com fundamento no Art. 112 da Lei de Execução Penal.\n\nExpeça-se o necessário.\n\nPublique-se. Intime-se.`;
+    } else if (userRole === 'PROMOTOR') {
+      template = `MM. JUIZ,\n\nO MINISTÉRIO PÚBLICO, analisando o pedido de ${caseContext.type}, manifesta-se pelo DEFERIMENTO.\n\nO requisito objetivo foi alcançado e o requisito subjetivo encontra-se preenchido, conforme ${behaviorFact}.\n\nNão havendo óbice legal, opina-se favoravelmente.`;
+    } else {
+      template = `CERTIFICO E DOU FÉ que, analisando os autos de execução penal de ${caseContext.inmateName}, verifico a presença dos documentos essenciais.\n\nFatos Relevantes Identificados:\n${extractedFacts.map(f => `- ${f.fact} [Fonte: ${f.sourceDoc}, Pág. ${f.page}]`).join('\n')}\n\nEncaminho os autos conclusos para apreciação.`;
+    }
 
     // Simula a digitação "streaming"
     let currentText = "";
     const words = template.split(" ");
     
     for (let i = 0; i < words.length; i++) {
-      await new Promise(r => setTimeout(r, 50)); // Velocidade da "digitação"
+      await new Promise(r => setTimeout(r, 30)); // Velocidade da "digitação"
       currentText += (i > 0 ? " " : "") + words[i];
       setContent(currentText);
       setGenerationProgress(Math.round(((i + 1) / words.length) * 100));
@@ -58,59 +147,136 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
   };
 
   return (
-    <div className="space-y-3 border rounded-md p-4 bg-background shadow-sm">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-primary flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-purple-500" />
-                Assistente de Redação (IA)
-            </span>
-            {showSuccess && (
-                <span className="text-xs text-success flex items-center gap-1 animate-in fade-in">
-                    <Check className="h-3 w-3" /> Gerado com sucesso
-                </span>
+    <div className="flex flex-col md:flex-row gap-4 h-full min-h-[400px]">
+      {/* Main Editor Area */}
+      <div className="flex-1 flex flex-col gap-3 border rounded-md p-4 bg-background shadow-sm h-full">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-primary flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-purple-500" />
+                  Smart Editor (RAG)
+              </span>
+              {showSuccess && (
+                  <span className="text-xs text-success flex items-center gap-1 animate-in fade-in">
+                      <Check className="h-3 w-3" /> Gerado com sucesso
+                  </span>
+              )}
+          </div>
+          <div className="flex gap-2">
+            {!analysisComplete && documents && documents.length > 0 && (
+               <Button 
+                type="button" 
+                variant="secondary" 
+                size="sm" 
+                onClick={analyzeDocuments}
+                disabled={isAnalyzing}
+                className="gap-2 text-xs"
+              >
+                {isAnalyzing ? <RefreshCw className="h-3 w-3 animate-spin" /> : <ScanText className="h-3 w-3" />}
+                {isAnalyzing ? "Lendo Autos..." : "Analisar Autos (IA)"}
+              </Button>
             )}
+            
+            <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={generateDraft}
+                disabled={isGenerating || isAnalyzing}
+                className="gap-2 border-purple-200 hover:bg-purple-50 hover:text-purple-700 transition-colors text-xs"
+            >
+                <Sparkles className="h-3 w-3" />
+                {isGenerating ? "Escrevendo..." : "Gerar Minuta"}
+            </Button>
+          </div>
         </div>
-        <Button 
-            type="button" 
-            variant="outline" 
-            size="sm" 
-            onClick={generateDraft}
-            disabled={isGenerating}
-            className="gap-2 border-purple-200 hover:bg-purple-50 hover:text-purple-700 transition-colors"
-        >
-            {isGenerating ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-            {isGenerating ? "Escrevendo..." : "Gerar Minuta Automática"}
-        </Button>
+
+        {(isGenerating || isAnalyzing) && <Progress value={generationProgress} className="h-1" />}
+
+        <div className="relative flex-1">
+          <Textarea 
+              value={content}
+              onChange={handleChange}
+              placeholder={analysisComplete ? "A IA analisou os documentos. Clique em 'Gerar Minuta' para criar o texto fundamentado." : "O texto da decisão aparecerá aqui..."}
+              className="h-full min-h-[300px] font-mono text-sm leading-relaxed resize-none pr-10"
+          />
+          <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 text-muted-foreground hover:text-primary"
+              onClick={() => {navigator.clipboard.writeText(content); setShowSuccess(true);}}
+              title="Copiar texto"
+          >
+              <Copy className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+           <div className="flex items-center gap-1">
+             <BookOpen className="h-3 w-3" />
+             <span>Base Legal: LEP, CPP e Jurisprudência STJ</span>
+           </div>
+           {analysisComplete && (
+             <span className="text-success flex items-center gap-1">
+               <CheckCircle2 className="h-3 w-3" /> {extractedFacts.length} fatos extraídos dos autos
+             </span>
+           )}
+        </div>
       </div>
 
-      {isGenerating && <Progress value={generationProgress} className="h-1" />}
+      {/* RAG Context Panel (Sidebar) */}
+      <div className={cn(
+        "w-full md:w-72 border rounded-md bg-muted/10 flex flex-col transition-all duration-500",
+        analysisComplete ? "opacity-100 translate-x-0" : "opacity-50 grayscale pointer-events-none"
+      )}>
+        <div className="p-3 border-b bg-muted/20 flex items-center justify-between">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Search className="h-4 w-4 text-primary" />
+            Evidências (RAG)
+          </h3>
+          <Badge variant="outline" className="text-[10px] bg-background">CNJ Ready</Badge>
+        </div>
 
-      <div className="relative">
-        <Textarea 
-            value={content}
-            onChange={handleChange}
-            placeholder="O texto da decisão ou parecer aparecerá aqui..."
-            className="min-h-[200px] font-mono text-sm leading-relaxed resize-y pr-10"
-        />
-        <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute top-2 right-2 text-muted-foreground hover:text-primary"
-            onClick={() => {navigator.clipboard.writeText(content); setShowSuccess(true);}}
-            title="Copiar texto"
-        >
-            <Copy className="h-4 w-4" />
-        </Button>
+        <ScrollArea className="flex-1 p-3">
+          {extractedFacts.length > 0 ? (
+            <div className="space-y-3">
+              {extractedFacts.map((fact) => (
+                <Card key={fact.id} className="shadow-sm border-l-4 border-l-primary hover:shadow-md transition-shadow cursor-pointer group">
+                  <CardContent className="p-3">
+                    <p className="text-xs font-medium text-foreground mb-2 leading-snug">
+                      "{fact.fact}"
+                    </p>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground bg-muted/50 p-1.5 rounded">
+                      <span className="flex items-center gap-1 truncate max-w-[120px]" title={fact.sourceDoc}>
+                        <FileText className="h-3 w-3" /> {fact.sourceDoc}
+                      </span>
+                      <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                        Fls. {fact.page}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 text-[10px] text-green-600 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Check className="h-3 w-3" /> Citado na minuta
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-40 text-center p-4 text-muted-foreground">
+              <ScanText className="h-8 w-8 mb-2 opacity-20" />
+              <p className="text-xs">
+                Clique em "Analisar Autos" para extrair fatos e fundamentar a decisão.
+              </p>
+            </div>
+          )}
+        </ScrollArea>
+        
+        <div className="p-3 border-t bg-yellow-50/50 text-[10px] text-yellow-800 flex gap-2">
+          <AlertCircle className="h-3 w-3 shrink-0 mt-0.5" />
+          <p>A IA sugere citações baseadas no OCR dos documentos. Sempre confira a folha original.</p>
+        </div>
       </div>
-
-      <Alert className="bg-purple-50 border-purple-100 text-purple-900 py-2">
-        <AlertDescription className="text-xs flex items-center gap-2">
-            <Sparkles className="h-3 w-3" />
-            A IA utilizou os dados do <strong>Perfil do Apenado</strong> e <strong>Precedentes Similares</strong> para compor este texto. Revise antes de assinar.
-        </AlertDescription>
-      </Alert>
     </div>
   );
 }
