@@ -20,12 +20,14 @@ import {
   ArrowLeft, Scale, FileText, AlertCircle, CheckCircle2, Gavel, ArrowUpRight, Lock, 
   ExternalLink, Paperclip, Eye, Edit2, RefreshCw, Loader2, ShieldAlert, PieChart, 
   Split, ArrowRightLeft, PenTool, Shield, Calendar, MapPin, Video, Clock, 
-  CalendarPlus, Download, Siren, Maximize2, Minimize2, BookOpen, Sparkles, BrainCircuit 
+  CalendarPlus, Download, Siren, Maximize2, Minimize2, BookOpen, Sparkles, BrainCircuit,
+  Calculator
 } from 'lucide-react';
 import { PdfViewer } from '@/components/business/PdfViewer';
 import { PrecedentComparator } from '@/components/business/PrecedentComparator';
 import { SmartDecisionEditor } from '@/components/business/SmartDecisionEditor';
 import { PsychologicalAnalysis } from '@/components/business/PsychologicalAnalysis';
+import { SentenceCalculator } from '@/components/business/SentenceCalculator';
 import { dynamoService } from '@/services/awsMock';
 
 // Interface para a resposta da API
@@ -46,6 +48,9 @@ export function CaseReview() {
 
   // Estado para Análise Psicológica (IA)
   const [isPsychAnalysisOpen, setIsPsychAnalysisOpen] = useState(false);
+
+  // Estado para Calculadora de Pena
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   
   // Estado para o Comparador Visual (Diff View)
   const [comparatorData, setComparatorData] = useState<{current: string, precedent: string, score: number} | null>(null);
@@ -175,6 +180,11 @@ export function CaseReview() {
     });
   };
 
+  const handleSaveSimulation = (data: any) => {
+    handleAuditLog("SIMULACAO_PENA", `Simulação salva: ${data.remissionDays} dias remidos.`);
+    setIsCalculatorOpen(false);
+  };
+
   // --- Calendar Integration Logic ---
   const getCalendarLinks = () => {
     if (!caseData || !caseData.hearingDate) return null;
@@ -258,6 +268,16 @@ END:VCALENDAR`;
         </div>
         
         <div className="ml-auto flex items-center gap-4">
+            {/* Sentence Calculator Button - VISIBLE ON MOBILE NOW */}
+            <Button 
+                variant="secondary" 
+                className="gap-2 bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
+                onClick={() => setIsCalculatorOpen(true)}
+            >
+                <Calculator className="h-4 w-4" />
+                <span className="hidden md:inline">Simular Pena</span>
+            </Button>
+
             {/* Focus Mode Button */}
             <Button 
                 variant="outline" 
@@ -269,7 +289,7 @@ END:VCALENDAR`;
             </Button>
 
             <div className="flex items-center gap-2 bg-muted/30 p-2 rounded border border-dashed border-muted-foreground/30">
-                <span className="text-xs font-mono text-muted-foreground">Simular Role:</span>
+                <span className="text-xs font-mono text-muted-foreground hidden md:inline">Simular Role:</span>
                 <select 
                     className="text-xs bg-transparent border-none font-bold text-primary focus:ring-0 cursor-pointer"
                     value={mockUserRole}
@@ -293,17 +313,18 @@ END:VCALENDAR`;
                 }`} 
                 onClick={handleNavigateToDecision}
             >
-                {mockUserRole === 'JUIZ' ? <><Gavel className="h-4 w-4" /> Decidir Agora</> :
-                 mockUserRole === 'PROMOTOR' ? <><Scale className="h-4 w-4" /> Emitir Parecer</> :
-                 mockUserRole === 'ADVOGADO' ? <><PenTool className="h-4 w-4" /> Peticionar</> :
-                 mockUserRole === 'DEFENSOR' ? <><Shield className="h-4 w-4" /> Manifestar (DP)</> :
-                 mockUserRole === 'POLICIA' ? <><Siren className="h-4 w-4" /> Registrar Ocorrência</> :
-                 <><FileText className="h-4 w-4" /> Analisar</>}
+                {mockUserRole === 'JUIZ' ? <><Gavel className="h-4 w-4" /> <span className="hidden md:inline">Decidir Agora</span></> :
+                 mockUserRole === 'PROMOTOR' ? <><Scale className="h-4 w-4" /> <span className="hidden md:inline">Emitir Parecer</span></> :
+                 mockUserRole === 'ADVOGADO' ? <><PenTool className="h-4 w-4" /> <span className="hidden md:inline">Peticionar</span></> :
+                 mockUserRole === 'DEFENSOR' ? <><Shield className="h-4 w-4" /> <span className="hidden md:inline">Manifestar (DP)</span></> :
+                 mockUserRole === 'POLICIA' ? <><Siren className="h-4 w-4" /> <span className="hidden md:inline">Registrar Ocorrência</span></> :
+                 <><FileText className="h-4 w-4" /> <span className="hidden md:inline">Analisar</span></>}
             </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ... (Rest of the component remains unchanged) ... */}
         {/* Main Case Info */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
@@ -705,6 +726,28 @@ END:VCALENDAR`;
             
             <div className="flex-1 p-6 bg-background overflow-hidden">
               <PsychologicalAnalysis />
+            </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for Sentence Calculator (NEW) */}
+      <Dialog open={isCalculatorOpen} onOpenChange={setIsCalculatorOpen}>
+        <DialogContent className="max-w-3xl">
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-primary">
+                    <Calculator className="h-5 w-5 text-blue-600" />
+                    Simulador de Pena Interativo
+                </DialogTitle>
+                <DialogDescription>
+                    Calcule o impacto de atividades de ressocialização na data de progressão de regime.
+                </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+                <SentenceCalculator 
+                    currentProgressionDate="10/05/2026" // Mock Date
+                    onSaveSimulation={handleSaveSimulation}
+                />
             </div>
         </DialogContent>
       </Dialog>

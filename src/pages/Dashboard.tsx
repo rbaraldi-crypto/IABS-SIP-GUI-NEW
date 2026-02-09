@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { mockMetrics } from "@/data/mockData";
-import { Users, AlertTriangle, Clock, UserCheck, ArrowRight, LayoutGrid, BarChart3 } from "lucide-react";
+import { Users, AlertTriangle, Clock, UserCheck, ArrowRight, LayoutGrid, BarChart3, PiggyBank, Tablet, Network } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
@@ -49,8 +49,65 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {mockMetrics.map((metric, index) => {
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {/* Card de ROI - Destaque de Vendas */}
+        <Card 
+          className="border-l-4 border-l-green-600 bg-green-50/30 cursor-pointer hover:shadow-md transition-all group"
+          onClick={() => navigate('/estatisticas', { state: { defaultTab: 'roi' } })}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-bold text-green-800 uppercase tracking-wider">
+              Economia (ROI)
+            </CardTitle>
+            <PiggyBank className="h-5 w-5 text-green-600 group-hover:scale-110 transition-transform" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-700">R$ 450k</div>
+            <p className="text-xs text-green-600 mt-1 font-medium flex items-center gap-1">
+              Ver detalhamento <ArrowRight className="h-3 w-3" />
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card de Inteligência de Vínculos (NOVO) */}
+        <Card 
+          className="border-l-4 border-l-purple-600 bg-purple-50/30 cursor-pointer hover:shadow-md transition-all group"
+          onClick={() => navigate('/estatisticas', { state: { defaultTab: 'links' } })}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-bold text-purple-800 uppercase tracking-wider">
+              Inteligência (P2)
+            </CardTitle>
+            <Network className="h-5 w-5 text-purple-600 group-hover:scale-110 transition-transform" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-700">Vínculos</div>
+            <p className="text-xs text-purple-600 mt-1 font-medium flex items-center gap-1">
+              Análise de Rede <ArrowRight className="h-3 w-3" />
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card de Modo Tático */}
+        <Card 
+          className="border-l-4 border-l-blue-600 bg-blue-50/30 cursor-pointer hover:shadow-md transition-all group"
+          onClick={() => navigate('/estatisticas', { state: { defaultTab: 'heatmap', tacticalMode: true } })}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-bold text-blue-800 uppercase tracking-wider">
+              Operação Tática
+            </CardTitle>
+            <Tablet className="h-5 w-5 text-blue-600 group-hover:scale-110 transition-transform" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-700">Modo Pátio</div>
+            <p className="text-xs text-blue-600 mt-1 font-medium flex items-center gap-1">
+              Conferência (Tablet) <ArrowRight className="h-3 w-3" />
+            </p>
+          </CardContent>
+        </Card>
+
+        {mockMetrics.slice(0, 2).map((metric, index) => {
           const Icon = metric.icon ? iconMap[metric.icon] : Users;
           const isCritical = metric.status === 'critical';
           
@@ -77,7 +134,7 @@ export function Dashboard() {
                 <div className="text-2xl font-bold">{metric.value}</div>
                 {isCritical && (
                   <p className="text-xs text-destructive mt-1 font-medium flex items-center gap-1">
-                    Ação imediata requerida <ArrowRight className="h-3 w-3" />
+                    Ação imediata <ArrowRight className="h-3 w-3" />
                   </p>
                 )}
               </CardContent>

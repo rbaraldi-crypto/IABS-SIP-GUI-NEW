@@ -3,13 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Sparkles, RefreshCw, Check, Copy, FileText, 
-  Search, BookOpen, ChevronRight, AlertCircle, ScanText, CheckCircle2
+  Search, BookOpen, ChevronRight, AlertCircle, ScanText, CheckCircle2,
+  ClipboardPaste, Plus
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { CaseDocument } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 
@@ -43,6 +45,10 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
   const [showSuccess, setShowSuccess] = useState(false);
   const [extractedFacts, setExtractedFacts] = useState<ExtractedFact[]>([]);
   const [analysisComplete, setAnalysisComplete] = useState(false);
+
+  // Demo / Paste Context State
+  const [isPasteDialogOpen, setIsPasteDialogOpen] = useState(false);
+  const [pastedText, setPastedText] = useState("");
 
   // Atualiza o pai quando o conteúdo muda localmente
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -106,6 +112,71 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
     setGenerationProgress(100);
   };
 
+  const handleProcessPastedText = () => {
+    if (!pastedText.trim()) return;
+    setIsPasteDialogOpen(false);
+    setIsAnalyzing(true);
+    setGenerationProgress(0);
+
+    // Simula processamento do texto colado
+    setTimeout(() => {
+        const newFacts: ExtractedFact[] = [];
+        const lowerText = pastedText.toLowerCase();
+
+        // Regras simples de extração para Demo
+        if (lowerText.includes("bom comportamento") || lowerText.includes("ótima conduta")) {
+            newFacts.push({
+                id: `demo-fact-${Date.now()}-1`,
+                fact: "Comportamento carcerário favorável identificado no texto",
+                sourceDoc: "Texto Colado (Demo)",
+                page: 1,
+                confidence: 95,
+                type: 'positive'
+            });
+        }
+        
+        if (lowerText.includes("trabalho") || lowerText.includes("estudo")) {
+            newFacts.push({
+                id: `demo-fact-${Date.now()}-2`,
+                fact: "Atividade laborterápica ou educacional citada",
+                sourceDoc: "Texto Colado (Demo)",
+                page: 1,
+                confidence: 90,
+                type: 'positive'
+            });
+        }
+
+        if (lowerText.includes("falta grave") || lowerText.includes("indisciplina")) {
+            newFacts.push({
+                id: `demo-fact-${Date.now()}-3`,
+                fact: "Menção a falta disciplinar ou infração",
+                sourceDoc: "Texto Colado (Demo)",
+                page: 1,
+                confidence: 88,
+                type: 'negative'
+            });
+        }
+
+        // Fato genérico se nada for encontrado
+        if (newFacts.length === 0) {
+             newFacts.push({
+                id: `demo-fact-${Date.now()}-0`,
+                fact: "Conteúdo processual analisado (sem palavras-chave específicas)",
+                sourceDoc: "Texto Colado (Demo)",
+                page: 1,
+                confidence: 60,
+                type: 'neutral'
+            });
+        }
+
+        setExtractedFacts(prev => [...prev, ...newFacts]);
+        setIsAnalyzing(false);
+        setAnalysisComplete(true);
+        setGenerationProgress(100);
+        setPastedText(""); // Limpa
+    }, 1500);
+  };
+
   const generateDraft = async () => {
     setIsGenerating(true);
     setGenerationProgress(0);
@@ -113,8 +184,8 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
 
     // Constrói referências baseadas nos fatos extraídos
     const citations = extractedFacts.map(f => `(cf. ${f.sourceDoc}, fls. ${f.page})`).join(' e ');
-    const behaviorFact = extractedFacts.find(f => f.fact.includes('Conduta')) 
-      ? `o atestado de conduta carcerária é favorável (vide ${extractedFacts.find(f => f.fact.includes('Conduta'))?.sourceDoc}, fl. ${extractedFacts.find(f => f.fact.includes('Conduta'))?.page})`
+    const behaviorFact = extractedFacts.find(f => f.fact.includes('Conduta') || f.fact.includes('Comportamento')) 
+      ? `o atestado de conduta carcerária é favorável (vide ${extractedFacts.find(f => f.fact.includes('Conduta') || f.fact.includes('Comportamento'))?.sourceDoc})`
       : "o atestado de conduta carcerária encontra-se nos autos";
 
     // Templates Contextuais
@@ -219,7 +290,7 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
            </div>
            {analysisComplete && (
              <span className="text-success flex items-center gap-1">
-               <CheckCircle2 className="h-3 w-3" /> {extractedFacts.length} fatos extraídos dos autos
+               <CheckCircle2 className="h-3 w-3" /> {extractedFacts.length} fatos extraídos
              </span>
            )}
         </div>
@@ -228,7 +299,7 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
       {/* RAG Context Panel (Sidebar) */}
       <div className={cn(
         "w-full md:w-72 border rounded-md bg-muted/10 flex flex-col transition-all duration-500",
-        analysisComplete ? "opacity-100 translate-x-0" : "opacity-50 grayscale pointer-events-none"
+        analysisComplete || extractedFacts.length > 0 ? "opacity-100 translate-x-0" : "opacity-100" // Always visible now for Demo button
       )}>
         <div className="p-3 border-b bg-muted/20 flex items-center justify-between">
           <h3 className="text-sm font-semibold flex items-center gap-2">
@@ -239,6 +310,16 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
         </div>
 
         <ScrollArea className="flex-1 p-3">
+          {/* Demo Button */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full mb-3 border-dashed border-primary/40 text-primary hover:bg-primary/5 text-xs h-8"
+            onClick={() => setIsPasteDialogOpen(true)}
+          >
+            <Plus className="h-3 w-3 mr-1" /> Adicionar Texto (Demo)
+          </Button>
+
           {extractedFacts.length > 0 ? (
             <div className="space-y-3">
               {extractedFacts.map((fact) => (
@@ -266,7 +347,7 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
             <div className="flex flex-col items-center justify-center h-40 text-center p-4 text-muted-foreground">
               <ScanText className="h-8 w-8 mb-2 opacity-20" />
               <p className="text-xs">
-                Clique em "Analisar Autos" para extrair fatos e fundamentar a decisão.
+                Clique em "Analisar Autos" ou adicione um texto demo para extrair fatos.
               </p>
             </div>
           )}
@@ -274,9 +355,38 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
         
         <div className="p-3 border-t bg-yellow-50/50 text-[10px] text-yellow-800 flex gap-2">
           <AlertCircle className="h-3 w-3 shrink-0 mt-0.5" />
-          <p>A IA sugere citações baseadas no OCR dos documentos. Sempre confira a folha original.</p>
+          <p>A IA sugere citações baseadas no OCR. Sempre confira a folha original.</p>
         </div>
       </div>
+
+      {/* Paste Text Dialog (Demo Mode) */}
+      <Dialog open={isPasteDialogOpen} onOpenChange={setIsPasteDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                    <ClipboardPaste className="h-5 w-5 text-primary" />
+                    Adicionar Evidência (Modo Demo)
+                </DialogTitle>
+                <DialogDescription>
+                    Cole um trecho de texto processual para que a IA extraia fatos relevantes.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-2">
+                <Textarea 
+                    placeholder="Ex: Certifico que o apenado mantém bom comportamento carcerário e exerce atividade laborativa..." 
+                    className="min-h-[150px]"
+                    value={pastedText}
+                    onChange={(e) => setPastedText(e.target.value)}
+                />
+            </div>
+            <DialogFooter>
+                <Button variant="ghost" onClick={() => setIsPasteDialogOpen(false)}>Cancelar</Button>
+                <Button onClick={handleProcessPastedText} disabled={!pastedText.trim()}>
+                    <Sparkles className="h-4 w-4 mr-2" /> Extrair Fatos (IA)
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

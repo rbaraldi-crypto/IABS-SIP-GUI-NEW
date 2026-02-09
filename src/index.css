@@ -52,6 +52,45 @@
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
   }
+
+  /* --- ALTO CONTRASTE (GOV.BR STYLE) --- */
+  .high-contrast {
+    --background: 0 0% 0%;        /* Preto Absoluto */
+    --foreground: 0 0% 100%;      /* Branco Puro */
+    
+    --card: 0 0% 5%;              /* Cinza Muito Escuro */
+    --card-foreground: 0 0% 100%;
+ 
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 100%;
+ 
+    /* Primary vira Amarelo (Alta Visibilidade) */
+    --primary: 60 100% 50%;       
+    --primary-foreground: 0 0% 0%;
+ 
+    /* Secondary vira Branco com borda */
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 100%;
+ 
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 85%;
+ 
+    --accent: 60 100% 50%;
+    --accent-foreground: 0 0% 0%;
+ 
+    --destructive: 0 100% 50%;    /* Vermelho Vivo */
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 120 100% 50%;      /* Verde Vivo */
+    --success-foreground: 0 0% 0%;
+
+    --warning: 39 100% 50%;       /* Laranja Vivo */
+    --warning-foreground: 0 0% 0%;
+
+    --border: 0 0% 100%;          /* Bordas Brancas Fortes */
+    --input: 0 0% 0%;
+    --ring: 60 100% 50%;
+  }
 }
  
 @layer base {
@@ -63,5 +102,20 @@
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
+  }
+
+  /* Força bordas mais visíveis em alto contraste */
+  .high-contrast * {
+    border-color: #fff !important;
+  }
+  
+  .high-contrast .bg-primary {
+    background-color: #ffff00 !important;
+    color: #000 !important;
+  }
+  
+  .high-contrast a {
+    text-decoration: underline;
+    color: #ffff00;
   }
 }

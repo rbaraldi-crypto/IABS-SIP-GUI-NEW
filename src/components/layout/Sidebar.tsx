@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, User, Scale, FileText, Gavel, ShieldAlert, 
-  Globe, Briefcase, Users, Building2, Eye, FileCheck, Trophy
+  Globe, Briefcase, Users, Building2, Eye, FileCheck, Trophy,
+  ClipboardList, Calculator
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +30,7 @@ export function Sidebar() {
         { label: t('nav.mycases'), path: '/meus-casos', icon: Briefcase },
         { label: t('nav.hitl'), path: '/acao-humana', icon: Gavel },
         { label: t('nav.precedents'), path: '/precedentes', icon: Scale },
+        { label: "Calculadora de Pena", path: '/calculadora', icon: Calculator },
       ]
     },
     {
@@ -36,6 +38,7 @@ export function Sidebar() {
       items: [
         { label: t('nav.profile'), path: '/perfil/SIP-2024-8921', icon: User },
         { label: "Gestão de Vagas", path: '/distribuicao', icon: Building2 },
+        { label: "Livro de Ocorrências", path: '/ocorrencias', icon: ClipboardList },
       ]
     },
     {

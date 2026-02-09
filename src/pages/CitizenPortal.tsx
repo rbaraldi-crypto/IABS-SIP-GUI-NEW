@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom"; // Hook for navigation
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -18,10 +19,11 @@ import {
   Search, CheckCircle2, Clock, FileText, ShieldCheck, 
   HelpCircle, ChevronRight, Download, Calendar, ExternalLink,
   QrCode, User, MessageSquare, Send, X, Bot, ShoppingBag, AlertCircle,
-  CalendarPlus, Video, Users, Info, MapPin
+  CalendarPlus, Video, Users, Info, MapPin, ArrowLeft
 } from "lucide-react";
 import { mockInmate, mockTimeline } from "@/data/mockData";
 import { HorizontalTimeline } from "@/components/business/HorizontalTimeline";
+import { AccessibilityBar } from "@/components/layout/AccessibilityBar";
 
 // --- Chatbot Logic & Data ---
 const FAQ_DATA: Record<string, string> = {
@@ -49,9 +51,11 @@ interface ScheduledVisit {
   type: 'Presencial' | 'Virtual';
   location: string;
   fullDateObj: Date;
+  virtualLink?: string;
 }
 
 export function CitizenPortal() {
+  const navigate = useNavigate(); // Hook for navigation
   const [cpf, setCpf] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
@@ -140,23 +144,24 @@ export function CitizenPortal() {
       dateObj.setHours(14, 0, 0);
     }
 
-    const location = visitType === 'presencial' 
-      ? "Complexo Penitenciário do Estado - Pavilhão B" 
-      : "Sala Virtual de Visitas (Link enviado por SMS)";
+    const isVirtual = visitType === 'virtual';
+    const location = isVirtual
+      ? "Sala Virtual de Visitas (Microsoft Teams)" 
+      : "Complexo Penitenciário do Estado - Pavilhão B";
+
+    const virtualLink = isVirtual ? "https://teams.microsoft.com/l/meetup-join/mock-link-visita-virtual" : undefined;
 
     setScheduledVisit({
       date: dateStr,
       time: timeStr,
-      type: visitType === 'presencial' ? 'Presencial' : 'Virtual',
+      type: isVirtual ? 'Virtual' : 'Presencial',
       location: location,
-      fullDateObj: dateObj
+      fullDateObj: dateObj,
+      virtualLink: virtualLink
     });
 
     setScheduleSuccess(true);
-    setTimeout(() => {
-      setIsScheduling(false);
-      setScheduleSuccess(false);
-    }, 2000);
+    // Removed auto-close to allow user to add to calendar from modal
   };
 
   // --- Calendar Helpers ---
@@ -167,7 +172,7 @@ export function CitizenPortal() {
     const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // 2 horas de duração
 
     const title = `Visita ${scheduledVisit.type}: ${mockInmate.name}`;
-    const description = `Visita ${scheduledVisit.type} agendada.\nLocal: ${scheduledVisit.location}\n\n⚠️ Importante: Verificar data/hora/local com a instituição penal antes de se deslocar.`;
+    const description = `Visita ${scheduledVisit.type} agendada.\nLocal: ${scheduledVisit.location}\nLink: ${scheduledVisit.virtualLink || 'N/A'}\n\n⚠️ Importante: Verificar data/hora/local com a instituição penal antes de se deslocar.`;
     const location = scheduledVisit.location;
 
     const formatGoogleDate = (date: Date) => {
@@ -203,13 +208,30 @@ END:VCALENDAR`;
     document.body.removeChild(element);
   };
 
+  const calendarLinks = getCalendarLinks();
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        {/* Accessibility Bar for Public Page */}
+        <div className="fixed top-0 left-0 right-0 z-50">
+            <AccessibilityBar />
+        </div>
+
         {/* Background Pattern */}
         <div className="absolute inset-0 z-0 opacity-5" style={{ backgroundImage: 'radial-gradient(#071D41 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
         
-        <div className="w-full max-w-md space-y-8 z-10">
+        {/* Back Button for Login Screen */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="absolute top-12 left-4 text-[#071D41] hover:bg-slate-200 z-40"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-6 w-6" />
+        </Button>
+
+        <div className="w-full max-w-md space-y-8 z-10 mt-12">
           <div className="text-center space-y-2">
             <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-[#071D41] text-white mb-4 shadow-xl">
               <ShieldCheck className="h-10 w-10" />
@@ -246,14 +268,10 @@ END:VCALENDAR`;
             </CardFooter>
           </Card>
 
-          <div className="grid grid-cols-2 gap-4 text-center">
+          <div className="grid grid-cols-1 gap-4 text-center">
             <div className="p-4 bg-white rounded-lg border hover:shadow-md cursor-pointer transition-all group">
               <HelpCircle className="h-6 w-6 mx-auto text-[#1351B4] mb-2 group-hover:scale-110 transition-transform" />
               <h3 className="font-semibold text-sm text-[#071D41]">Dúvidas Frequentes</h3>
-            </div>
-            <div className="p-4 bg-white rounded-lg border hover:shadow-md cursor-pointer transition-all group">
-              <Calendar className="h-6 w-6 mx-auto text-[#1351B4] mb-2 group-hover:scale-110 transition-transform" />
-              <h3 className="font-semibold text-sm text-[#071D41]">Agendar Visita</h3>
             </div>
           </div>
         </div>
@@ -261,14 +279,26 @@ END:VCALENDAR`;
     );
   }
 
-  const calendarLinks = getCalendarLinks();
-
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-20">
+    <div className="min-h-screen bg-[#F8F9FA] pb-20 pt-[33px]">
+      {/* Accessibility Bar Fixed */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <AccessibilityBar />
+      </div>
+
       {/* Header Gov.br Style */}
-      <header className="bg-[#071D41] text-white py-4 px-6 shadow-md sticky top-0 z-30">
+      <header className="bg-[#071D41] text-white py-4 px-6 shadow-md sticky top-[33px] z-30">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
+            {/* Back Button for Authenticated Screen */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-white hover:bg-white/10 -ml-2"
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </Button>
             <ShieldCheck className="h-8 w-8" />
             <div>
               <h1 className="text-xl font-bold leading-none">Portal do Cidadão</h1>
@@ -479,6 +509,11 @@ END:VCALENDAR`;
                         {scheduledVisit.type === 'Virtual' ? <Video className="h-4 w-4 mt-0.5 text-blue-500" /> : <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />}
                         <span className="text-muted-foreground leading-tight">{scheduledVisit.location}</span>
                       </div>
+                      {scheduledVisit.type === 'Virtual' && scheduledVisit.virtualLink && (
+                         <Button variant="link" className="h-auto p-0 text-blue-600 text-xs ml-6" onClick={() => window.open(scheduledVisit.virtualLink, '_blank')}>
+                            Entrar na Sala Virtual <ExternalLink className="ml-1 h-3 w-3" />
+                         </Button>
+                      )}
                     </div>
 
                     {/* Aviso de Verificação */}
@@ -740,6 +775,40 @@ END:VCALENDAR`;
                         Você receberá os detalhes por SMS.
                     </p>
                 </div>
+
+                {/* Add to Calendar Button in Modal Success State */}
+                {calendarLinks && (
+                    <div className="w-full max-w-xs mt-4">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-full gap-2 border-[#1351B4]/20 hover:bg-[#1351B4]/5 hover:text-[#1351B4]">
+                                    <CalendarPlus className="h-4 w-4" />
+                                    Adicionar ao Calendário
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="center" className="w-56">
+                                <DropdownMenuItem onClick={() => window.open(calendarLinks.googleUrl, '_blank')} className="cursor-pointer">
+                                    Google Calendar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => window.open(calendarLinks.outlookUrl, '_blank')} className="cursor-pointer">
+                                    Outlook / Office 365
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => downloadIcs(calendarLinks.icsContent)} className="cursor-pointer gap-2">
+                                    <Download className="h-3 w-3" />
+                                    Baixar Arquivo (.ics)
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                )}
+                
+                <Button 
+                    onClick={() => { setIsScheduling(false); setScheduleSuccess(false); }} 
+                    variant="ghost" 
+                    className="mt-2 text-muted-foreground"
+                >
+                    Fechar
+                </Button>
             </div>
           )}
 

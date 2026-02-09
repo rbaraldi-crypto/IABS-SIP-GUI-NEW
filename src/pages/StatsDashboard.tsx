@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend,
   LineChart, Line, XAxis, YAxis, CartesianGrid, AreaChart, Area, ReferenceLine,
-  ComposedChart, Bar
+  ComposedChart, Bar, BarChart
 } from 'recharts';
 import { 
   ArrowLeft, Filter, AlertTriangle, CheckCircle2, 
   Clock, Users, BrainCircuit, FileDown, Loader2,
   LayoutDashboard, CalendarRange, TrendingUp, Search, ArrowRight,
-  TrendingDown, ShieldAlert, Zap, Map
+  TrendingDown, ShieldAlert, Zap, Map, DollarSign, PiggyBank, Scale,
+  Network
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import { cn } from '@/lib/utils';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { PrisonHeatmap } from '@/components/business/PrisonHeatmap';
+import { LinkAnalysisGraph } from '@/components/business/LinkAnalysisGraph';
 
 // --- Mock Data ---
 
@@ -58,6 +60,16 @@ const evolutionData = [
   { month: 'Abr', novos: 134, concluidos: 140 },
   { month: 'Mai', novos: 90, concluidos: 115 },
   { month: 'Jun', novos: 230, concluidos: 180 },
+];
+
+// Dados Financeiros Mockados
+const financialData = [
+  { month: 'Jan', custoReal: 4500000, economia: 120000 },
+  { month: 'Fev', custoReal: 4480000, economia: 150000 },
+  { month: 'Mar', custoReal: 4600000, economia: 180000 },
+  { month: 'Abr', custoReal: 4550000, economia: 210000 },
+  { month: 'Mai', custoReal: 4400000, economia: 290000 },
+  { month: 'Jun', custoReal: 4250000, economia: 450000 }, // Salto devido ao uso do sistema
 ];
 
 const staffData = [
@@ -132,6 +144,7 @@ const generatePredictionData = (scenario: 'neutral' | 'high_crime' | 'mass_relea
 
 export function StatsDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [logs, setLogs] = useState<string[]>(initialLogs);
   const [selectedSlice, setSelectedSlice] = useState<any | null>(null);
   const [filterText, setFilterText] = useState('');
@@ -142,6 +155,10 @@ export function StatsDashboard() {
   // Predictive State
   const [scenario, setScenario] = useState<'neutral' | 'high_crime' | 'mass_release'>('neutral');
   const [predictionData, setPredictionData] = useState(generatePredictionData('neutral'));
+
+  // Tab State
+  const defaultTab = location.state?.defaultTab || 'roi';
+  const defaultTacticalMode = location.state?.tacticalMode || false;
 
   useEffect(() => {
     setPredictionData(generatePredictionData(scenario));
@@ -282,18 +299,99 @@ export function StatsDashboard() {
           />
         </div>
 
-        <Tabs defaultValue="predictive" className="space-y-4">
-          <TabsList>
+        <Tabs defaultValue={defaultTab} className="space-y-4">
+          <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full md:w-auto">
+            <TabsTrigger value="roi" className="gap-2">
+                <DollarSign className="h-4 w-4" /> Eficiência Financeira (ROI)
+            </TabsTrigger>
             <TabsTrigger value="predictive" className="gap-2">
                 <BrainCircuit className="h-4 w-4" /> Inteligência & Predição
             </TabsTrigger>
             <TabsTrigger value="heatmap" className="gap-2">
-                <Map className="h-4 w-4" /> Mapa de Calor (Facções)
+                <Map className="h-4 w-4" /> Mapa de Calor
+            </TabsTrigger>
+            <TabsTrigger value="links" className="gap-2">
+                <Network className="h-4 w-4" /> Inteligência de Vínculos
             </TabsTrigger>
             <TabsTrigger value="productivity" className="gap-2">
                 <TrendingUp className="h-4 w-4" /> Produtividade
             </TabsTrigger>
           </TabsList>
+
+          {/* NOVA ABA: Eficiência Financeira (ROI) */}
+          <TabsContent value="roi" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="md:col-span-2 border-t-4 border-t-green-600 shadow-md">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-green-800">
+                            <PiggyBank className="h-6 w-6" />
+                            Economia Gerada (Redução de Superlotação)
+                        </CardTitle>
+                        <CardDescription>
+                            Impacto financeiro direto da aceleração de progressões de regime e livramentos condicionais.
+                            <br/><span className="text-xs text-muted-foreground">*Custo médio mensal por detento estimado em R$ 2.500,00 (Fonte: CNJ)</span>
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={financialData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="month" />
+                                    <YAxis tickFormatter={(val) => `R$ ${val/1000}k`} />
+                                    <RechartsTooltip 
+                                        formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, "Valor"]}
+                                        contentStyle={{ borderRadius: '8px' }}
+                                    />
+                                    <Legend />
+                                    <Bar dataKey="custoReal" name="Custo Operacional" fill="#94a3b8" radius={[4, 4, 0, 0]} stackId="a" />
+                                    <Bar dataKey="economia" name="Economia Gerada (Eficiência)" fill="#16a34a" radius={[4, 4, 0, 0]} stackId="a" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <div className="space-y-6">
+                    <Card className="bg-green-50 border-green-200">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-lg text-green-800">Economia Acumulada (Ano)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-4xl font-bold text-green-700">R$ 1.4 Mi</div>
+                            <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
+                                <TrendingUp className="h-4 w-4" />
+                                +15% vs ano anterior
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Scale className="h-5 w-5 text-primary" />
+                                Dias de Pena Remidos
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-bold text-primary">12.450 dias</div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                                Equivalente a <strong>34 anos</strong> de encarceramento evitados através de trabalho e estudo monitorados.
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 text-sm text-blue-800">
+                        <p className="font-bold mb-1 flex items-center gap-2">
+                            <Zap className="h-4 w-4" /> Insight de Gestão:
+                        </p>
+                        <p>
+                            A implementação do módulo de <strong>IA para Triagem</strong> reduziu o tempo médio de concessão de benefícios em <strong>42%</strong>, liberando vagas mais rapidamente.
+                        </p>
+                    </div>
+                </div>
+            </div>
+          </TabsContent>
 
           <TabsContent value="predictive" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex items-center justify-between">
@@ -455,7 +553,12 @@ export function StatsDashboard() {
                     </p>
                   </div>
               </div>
-              <PrisonHeatmap />
+              <PrisonHeatmap defaultTacticalMode={defaultTacticalMode} />
+          </TabsContent>
+
+          {/* NOVA ABA: Análise de Vínculos */}
+          <TabsContent value="links" className="space-y-4 animate-in fade-in">
+              <LinkAnalysisGraph />
           </TabsContent>
 
           <TabsContent value="productivity" className="space-y-4 animate-in fade-in">
