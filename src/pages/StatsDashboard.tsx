@@ -428,7 +428,12 @@ export function StatsDashboard() {
                         O modelo preditivo indica que a capacidade máxima será excedida em <strong>{predictionData.find(d => d.occupancy > 2000)?.month}</strong>. 
                         Recomenda-se iniciar planejamento de transferências ou mutirão de revisão processual imediatamente.
                       </p>
-                      <Button variant="outline" size="sm" className="mt-2 text-xs border-destructive/30 text-destructive hover:bg-destructive/10">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2 text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
+                        onClick={() => navigate('/plano-contingencia')}
+                      >
                         <Zap className="h-3 w-3 mr-1" /> Gerar Plano de Contingência
                       </Button>
                     </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { mockInmate } from "@/data/mockData";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -8,10 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Trophy, BookOpen, Hammer, GraduationCap, Star, 
   TrendingUp, Clock, Target, ShieldCheck, Medal, 
-  CalendarCheck, ChevronRight, Lock, Info
+  CalendarCheck, ChevronRight, Lock, Info, ArrowLeft
 } from "lucide-react";
 
 export function InmatePortal() {
+  const navigate = useNavigate();
+
   // Mock Data específico para Gamificação
   const gamificationData = {
     score: 850,
@@ -44,6 +47,16 @@ export function InmatePortal() {
       <header className="bg-[#0B3C5D] text-white p-6 shadow-lg">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate(-1)} 
+              className="text-white hover:bg-white/20 mr-2"
+              title="Voltar"
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </Button>
+
             <div className="h-16 w-16 rounded-full border-4 border-white/20 overflow-hidden bg-white">
                <img src={mockInmate.photoUrl} alt="Foto" className="h-full w-full object-cover" />
             </div>

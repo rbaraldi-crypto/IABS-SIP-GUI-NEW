@@ -89,6 +89,14 @@ const getFactionColor = (faction: FactionType) => {
   }
 };
 
+const getFactionDisplayName = (faction: string) => {
+  switch(faction) {
+      case 'CV': return 'Facção A';
+      case 'PCC': return 'Facção B';
+      default: return faction;
+  }
+};
+
 const getRiskBorder = (risk: RiskLevel) => {
   switch (risk) {
     case 'Crítico': return 'ring-4 ring-destructive ring-offset-2 animate-pulse z-10';
@@ -107,11 +115,11 @@ export function PrisonHeatmap() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
-            <span className="text-xs font-medium">Facção A (CV)</span>
+            <span className="text-xs font-medium">Facção A</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
-            <span className="text-xs font-medium">Facção B (PCC)</span>
+            <span className="text-xs font-medium">Facção B</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-yellow-400 rounded-sm"></div>
@@ -170,7 +178,7 @@ export function PrisonHeatmap() {
                       <TooltipContent side="top" className="p-3">
                         <div className="space-y-1">
                             <p className="font-bold text-sm border-b pb-1 mb-1">Cela {cell.label}</p>
-                            <p className="text-xs">Facção: <strong>{cell.faction}</strong></p>
+                            <p className="text-xs">Facção: <strong>{getFactionDisplayName(cell.faction)}</strong></p>
                             <p className="text-xs">Ocupação: {cell.occupancy}/{cell.capacity}</p>
                             <p className={`text-xs font-bold ${cell.risk === 'Crítico' ? 'text-red-500' : ''}`}>
                                 Risco: {cell.risk}
@@ -208,7 +216,7 @@ export function PrisonHeatmap() {
                             <span className="text-xs font-bold text-muted-foreground uppercase">Facção Dominante</span>
                             <div className="flex items-center gap-2 mt-1">
                                 <div className={`w-3 h-3 rounded-full ${getFactionColor(selectedCell.faction).split(' ')[0]}`} />
-                                <span className="font-bold">{selectedCell.faction}</span>
+                                <span className="font-bold">{getFactionDisplayName(selectedCell.faction)}</span>
                             </div>
                         </div>
                         <div className="p-3 bg-muted/30 rounded border">

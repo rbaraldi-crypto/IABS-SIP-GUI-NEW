@@ -13,7 +13,9 @@ import { StatsDashboard } from '@/pages/StatsDashboard';
 import { CitizenPortal } from '@/pages/CitizenPortal';
 import { InmatePortal } from '@/pages/InmatePortal';
 import { ControlRoom } from '@/pages/ControlRoom';
+import { ContingencyPlan } from '@/pages/ContingencyPlan';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { Toaster } from 'sonner';
 
 function App() {
   return (
@@ -40,9 +42,11 @@ function App() {
             <Route path="distribuicao" element={<CaseDistribution />} />
             <Route path="coordenador" element={<CoordinatorDistribution />} />
             <Route path="estatisticas" element={<StatsDashboard />} />
+            <Route path="plano-contingencia" element={<ContingencyPlan />} />
             <Route path="controle" element={<ControlRoom />} />
           </Route>
         </Routes>
+        <Toaster />
       </Router>
     </LanguageProvider>
   );

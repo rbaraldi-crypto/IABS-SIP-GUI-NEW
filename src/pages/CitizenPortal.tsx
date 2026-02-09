@@ -5,10 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 import { 
   Search, CheckCircle2, Clock, FileText, ShieldCheck, 
   HelpCircle, ChevronRight, Download, Calendar, ExternalLink,
-  QrCode, User, MessageSquare, Send, X, Bot, ShoppingBag, AlertCircle
+  QrCode, User, MessageSquare, Send, X, Bot, ShoppingBag, AlertCircle,
+  CalendarPlus, Video, Users, Info, MapPin
 } from "lucide-react";
 import { mockInmate, mockTimeline } from "@/data/mockData";
 import { HorizontalTimeline } from "@/components/business/HorizontalTimeline";
@@ -33,6 +43,14 @@ interface ChatMessage {
   timestamp: Date;
 }
 
+interface ScheduledVisit {
+  date: string;
+  time: string;
+  type: 'Presencial' | 'Virtual';
+  location: string;
+  fullDateObj: Date;
+}
+
 export function CitizenPortal() {
   const [cpf, setCpf] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -47,6 +65,13 @@ export function CitizenPortal() {
 
   // QR Code State
   const [qrCodeValidUntil, setQrCodeValidUntil] = useState<Date | null>(null);
+
+  // Scheduling State
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [visitType, setVisitType] = useState<"presencial" | "virtual">("presencial");
+  const [selectedSlot, setSelectedSlot] = useState<string>("");
+  const [scheduleSuccess, setScheduleSuccess] = useState(false);
+  const [scheduledVisit, setScheduledVisit] = useState<ScheduledVisit | null>(null);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -91,6 +116,91 @@ export function CitizenPortal() {
       const botMsg: ChatMessage = { id: Date.now() + 1, text: responseText, sender: 'bot', timestamp: new Date() };
       setMessages(prev => [...prev, botMsg]);
     }, 1000);
+  };
+
+  const handleConfirmSchedule = () => {
+    // Mock logic to parse selected slot
+    let dateStr = "";
+    let timeStr = "";
+    let dateObj = new Date();
+
+    if (selectedSlot.includes("sabado")) {
+      dateStr = "15/06/2024";
+      dateObj = new Date(2024, 5, 15); // Month is 0-indexed
+    } else {
+      dateStr = "16/06/2024";
+      dateObj = new Date(2024, 5, 16);
+    }
+
+    if (selectedSlot.includes("09")) {
+      timeStr = "09:00";
+      dateObj.setHours(9, 0, 0);
+    } else {
+      timeStr = "14:00";
+      dateObj.setHours(14, 0, 0);
+    }
+
+    const location = visitType === 'presencial' 
+      ? "Complexo Penitenciário do Estado - Pavilhão B" 
+      : "Sala Virtual de Visitas (Link enviado por SMS)";
+
+    setScheduledVisit({
+      date: dateStr,
+      time: timeStr,
+      type: visitType === 'presencial' ? 'Presencial' : 'Virtual',
+      location: location,
+      fullDateObj: dateObj
+    });
+
+    setScheduleSuccess(true);
+    setTimeout(() => {
+      setIsScheduling(false);
+      setScheduleSuccess(false);
+    }, 2000);
+  };
+
+  // --- Calendar Helpers ---
+  const getCalendarLinks = () => {
+    if (!scheduledVisit) return null;
+
+    const startDate = new Date(scheduledVisit.fullDateObj);
+    const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // 2 horas de duração
+
+    const title = `Visita ${scheduledVisit.type}: ${mockInmate.name}`;
+    const description = `Visita ${scheduledVisit.type} agendada.\nLocal: ${scheduledVisit.location}\n\n⚠️ Importante: Verificar data/hora/local com a instituição penal antes de se deslocar.`;
+    const location = scheduledVisit.location;
+
+    const formatGoogleDate = (date: Date) => {
+      return date.toISOString().replace(/-|:|\.\d\d\d/g, "");
+    };
+
+    const googleUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}&details=${encodeURIComponent(description)}&location=${encodeURIComponent(location)}`;
+    
+    const outlookUrl = `https://outlook.live.com/calendar/0/deeplink/compose?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(description)}&startdt=${startDate.toISOString()}&enddt=${endDate.toISOString()}&location=${encodeURIComponent(location)}`;
+
+    // ICS Content
+    const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+DTSTART:${formatGoogleDate(startDate)}
+DTEND:${formatGoogleDate(endDate)}
+SUMMARY:${title}
+DESCRIPTION:${description}
+LOCATION:${location}
+END:VEVENT
+END:VCALENDAR`;
+
+    return { googleUrl, outlookUrl, icsContent };
+  };
+
+  const downloadIcs = (icsContent: string) => {
+    const element = document.createElement("a");
+    const file = new Blob([icsContent], {type: 'text/calendar'});
+    element.href = URL.createObjectURL(file);
+    element.download = `visita-${mockInmate.id}.ics`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   };
 
   if (!isAuthenticated) {
@@ -150,6 +260,8 @@ export function CitizenPortal() {
       </div>
     );
   }
+
+  const calendarLinks = getCalendarLinks();
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-20">
@@ -339,6 +451,91 @@ export function CitizenPortal() {
           </div>
 
           <div className="space-y-4">
+            
+            {/* CARD DE AGENDAMENTO CONFIRMADO (Copiado e Adaptado de CaseReview) */}
+            {scheduledVisit && (
+              <Card className="border-l-4 border-l-[#1351B4] shadow-sm animate-in fade-in slide-in-from-right-4">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2 text-[#071D41]">
+                    <Calendar className="h-4 w-4" />
+                    Agendamento de Visita
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Clock className="h-4 w-4 text-[#1351B4]" />
+                        <span className="font-bold text-lg text-[#071D41]">{scheduledVisit.date}</span>
+                        <span className="text-sm font-medium text-muted-foreground">às {scheduledVisit.time}</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs bg-white border-blue-200 text-blue-800">
+                        Visita {scheduledVisit.type}
+                      </Badge>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <div className="flex items-start gap-2 text-sm">
+                        {scheduledVisit.type === 'Virtual' ? <Video className="h-4 w-4 mt-0.5 text-blue-500" /> : <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />}
+                        <span className="text-muted-foreground leading-tight">{scheduledVisit.location}</span>
+                      </div>
+                    </div>
+
+                    {/* Aviso de Verificação */}
+                    <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded border border-amber-200 flex gap-2">
+                        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                        <span>Verificar data/hora/local com a instituição penal antes de se deslocar.</span>
+                    </div>
+
+                    {/* Add to Calendar Button */}
+                    {calendarLinks && (
+                      <div className="pt-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="w-full gap-2 border-[#1351B4]/20 hover:bg-[#1351B4]/5 hover:text-[#1351B4]">
+                              <CalendarPlus className="h-4 w-4" />
+                              Adicionar ao Calendário
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => window.open(calendarLinks.googleUrl, '_blank')} className="cursor-pointer">
+                              Google Calendar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => window.open(calendarLinks.outlookUrl, '_blank')} className="cursor-pointer">
+                              Outlook / Office 365
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => downloadIcs(calendarLinks.icsContent)} className="cursor-pointer gap-2">
+                              <Download className="h-3 w-3" />
+                              Baixar Arquivo (.ics)
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* BOTÃO DE AGENDAMENTO DE VISITA */}
+            {!scheduledVisit && (
+              <Button 
+                className="w-full h-auto py-6 text-lg bg-[#1351B4] hover:bg-[#0B3C5D] shadow-md flex items-center justify-between px-6 transition-all hover:scale-[1.02]"
+                onClick={() => setIsScheduling(true)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-full">
+                    <CalendarPlus className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <span className="block font-bold">Agendar Visita</span>
+                    <span className="block text-xs font-normal opacity-80">Presencial ou Virtual</span>
+                  </div>
+                </div>
+                <ChevronRight className="h-6 w-6 text-white/70" />
+              </Button>
+            )}
+
             <Card className="bg-[#071D41] text-white border-none shadow-lg">
               <CardHeader>
                 <CardTitle className="text-lg">Precisa de Ajuda?</CardTitle>
@@ -470,6 +667,98 @@ export function CitizenPortal() {
         </Button>
       </div>
 
+      {/* Dialog de Agendamento de Visita */}
+      <Dialog open={isScheduling} onOpenChange={setIsScheduling}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[#071D41]">
+                <CalendarPlus className="h-5 w-5" />
+                Agendamento de Visita
+            </DialogTitle>
+            <DialogDescription>
+              Selecione o tipo de visita e a data desejada para ver o apenado.
+            </DialogDescription>
+          </DialogHeader>
+
+          {!scheduleSuccess ? (
+            <div className="grid gap-6 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div 
+                        className={`
+                            h-28 flex flex-col items-center justify-center gap-2 rounded-lg border-2 cursor-pointer transition-all
+                            ${visitType === 'presencial' ? 'border-[#1351B4] bg-blue-50/50 text-[#1351B4]' : 'border-slate-200 text-slate-600'}
+                        `}
+                        onClick={() => setVisitType('presencial')}
+                    >
+                        <Users className="h-8 w-8" />
+                        <span className="font-bold">Presencial</span>
+                        <span className="text-xs text-muted-foreground">Na Unidade</span>
+                    </div>
+                    <div 
+                        className={`
+                            h-28 flex flex-col items-center justify-center gap-2 rounded-lg border-2 cursor-pointer transition-all
+                            ${visitType === 'virtual' ? 'border-[#1351B4] bg-blue-50/50 text-[#1351B4]' : 'border-slate-200 text-slate-600'}
+                        `}
+                        onClick={() => setVisitType('virtual')}
+                    >
+                        <Video className="h-8 w-8" />
+                        <span className="font-bold">Virtual</span>
+                        <span className="text-xs text-muted-foreground">Videoconferência</span>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label>Data Disponível</Label>
+                    <Select onValueChange={setSelectedSlot}>
+                        <SelectTrigger className="h-12 text-base">
+                            <SelectValue placeholder="Selecione um horário..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="sabado-09">Sábado, 15/06 - 09:00 às 11:00</SelectItem>
+                            <SelectItem value="sabado-14">Sábado, 15/06 - 14:00 às 16:00</SelectItem>
+                            <SelectItem value="domingo-09">Domingo, 16/06 - 09:00 às 11:00</SelectItem>
+                            <SelectItem value="domingo-14">Domingo, 16/06 - 14:00 às 16:00</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded p-3 text-xs text-amber-800 flex gap-2">
+                    <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                    <p>
+                        Para visitas presenciais, é obrigatório o uso de roupas adequadas (sem cores escuras) e apresentação de documento com foto.
+                    </p>
+                </div>
+            </div>
+          ) : (
+            <div className="py-10 flex flex-col items-center justify-center text-center space-y-4 animate-in zoom-in">
+                <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                </div>
+                <div>
+                    <h3 className="text-xl font-bold text-[#071D41]">Agendamento Confirmado!</h3>
+                    <p className="text-muted-foreground">
+                        Você receberá os detalhes por SMS.
+                    </p>
+                </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            {!scheduleSuccess && (
+                <>
+                    <Button variant="ghost" onClick={() => setIsScheduling(false)}>Cancelar</Button>
+                    <Button 
+                      className="bg-[#1351B4] hover:bg-[#071D41]" 
+                      onClick={handleConfirmSchedule}
+                      disabled={!selectedSlot}
+                    >
+                        Confirmar Agendamento
+                    </Button>
+                </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
