@@ -1,7 +1,12 @@
 [build]
-  command = "npm run build"
+  command = "yarn build"
   publish = "dist"
 
 [build.environment]
-  NPM_CONFIG_LEGACY_PEER_DEPS = "true"
-  NODE_VERSION = "18"
+  NODE_VERSION = "20.18.0"
+  YARN_FLAGS = "--ignore-engines"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
