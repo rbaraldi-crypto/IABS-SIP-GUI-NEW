@@ -6,11 +6,8 @@ import {
   BreadcrumbPage, 
   BreadcrumbSeparator 
 } from "@/components/ui/breadcrumb";
-import { useLocation } from "react-router-dom";
 
 export function GovHeader({ title, description, breadcrumbs }: { title: string, description?: string, breadcrumbs?: { label: string, href?: string }[] }) {
-  const location = useLocation();
-
   return (
     <div className="space-y-4 mb-8">
       {/* Breadcrumbs padrão Gov */}

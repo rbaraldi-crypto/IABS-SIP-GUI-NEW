@@ -1,13 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
 import { 
-  LayoutDashboard, User, Scale, FileText, Gavel, ShieldAlert, 
+  LayoutDashboard, User, Scale, Gavel, ShieldAlert, 
   Globe, Briefcase, Users, Building2, Eye, FileCheck, Trophy,
   ClipboardList, Calculator
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Separator } from '@/components/ui/separator';
 
 export function Sidebar() {
   const location = useLocation();

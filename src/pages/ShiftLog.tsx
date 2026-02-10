@@ -11,7 +11,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   ClipboardList, Clock, Shield, AlertTriangle, Plus, 
-  User, MapPin, CheckCircle2, Lock, Siren, FileSignature, Search
+  User, MapPin, Lock, Siren, FileSignature, Search
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";

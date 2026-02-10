@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { 
-  Calculator, Calendar, Clock, BookOpen, Hammer, GraduationCap, 
-  ArrowRight, Save, RotateCcw, TrendingDown 
+  Calculator, Calendar, BookOpen, Hammer, GraduationCap, 
+  Save, RotateCcw, TrendingDown 
 } from 'lucide-react';
-import { addDays, format, parse } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface SentenceCalculatorProps {

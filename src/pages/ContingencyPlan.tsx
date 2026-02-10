@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, BrainCircuit, CheckCircle2, AlertTriangle, 
+  ArrowLeft, BrainCircuit, CheckCircle2, 
   TrendingDown, Users, DollarSign, Clock, ShieldAlert, 
-  FileText, Zap, ChevronRight, Loader2, Building2, Gavel,
+  FileText, Zap, Loader2, Building2, Gavel,
   Usb, RefreshCw, Key, ShieldCheck, Lock
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

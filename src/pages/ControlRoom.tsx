@@ -1,11 +1,10 @@
 import { GovHeader } from "@/components/layout/GovHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockMetrics } from "@/data/mockData";
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
-import { AlertTriangle, CheckCircle2, Siren, Activity, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 
 const complianceData = [
   { unit: 'Unidade A', compliance: 95, alerts: 2 },

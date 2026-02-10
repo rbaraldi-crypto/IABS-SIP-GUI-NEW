@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   Gavel, Loader2, CheckCircle, ShieldAlert, FileInput, ArrowRight, ArrowLeft, 
-  Search, BookOpen, AlertCircle, ShieldCheck, Fingerprint, FileText, User, 
-  Briefcase, Scale, PenTool, Shield, Siren, Lock, Usb, RefreshCw, Key
+  Search, BookOpen, ShieldCheck, FileText, User, 
+  Briefcase, Scale, Shield, Siren, Usb, RefreshCw, Key
 } from "lucide-react";
 import { mockMyCases } from "@/data/mockData";
 import { SmartDecisionEditor } from "@/components/business/SmartDecisionEditor";
@@ -44,7 +44,6 @@ export function HITL() {
   // Law Verification State
   const [isVerifyingLaw, setIsVerifyingLaw] = useState(false);
   const [lawSummary, setLawSummary] = useState<{title: string, content: string} | null>(null);
-  const [lawNotFound, setLawNotFound] = useState(false);
 
   // Mock Identity Context
   const [mockUserRole, setMockUserRole] = useState<UserRole>("ANALISTA");
@@ -88,7 +87,6 @@ export function HITL() {
 
     setIsVerifyingLaw(true);
     setLawSummary(null);
-    setLawNotFound(false);
 
     // Simulate API Latency
     await new Promise(resolve => setTimeout(resolve, 1500));
@@ -112,8 +110,6 @@ export function HITL() {
                 title: "Legislação Identificada",
                 content: `Resumo automático para a norma citada "${term}": Dispositivo legal aplicável ao caso concreto conforme jurisprudência vigente e base de conhecimento do tribunal.`
             });
-        } else {
-            setLawNotFound(true);
         }
     }
     setIsVerifyingLaw(false);

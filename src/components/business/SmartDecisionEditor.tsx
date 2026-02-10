@@ -3,10 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Sparkles, RefreshCw, Check, Copy, FileText, 
-  Search, BookOpen, ChevronRight, AlertCircle, ScanText, CheckCircle2,
+  Search, BookOpen, AlertCircle, ScanText, CheckCircle2,
   ClipboardPaste, Plus
 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';

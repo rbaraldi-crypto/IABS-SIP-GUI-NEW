@@ -18,7 +18,7 @@ import {
 import { 
   Search, CheckCircle2, Clock, FileText, ShieldCheck, 
   HelpCircle, ChevronRight, Download, Calendar, ExternalLink,
-  QrCode, User, MessageSquare, Send, X, Bot, ShoppingBag, AlertCircle,
+  QrCode, MessageSquare, Send, X, Bot, AlertCircle,
   CalendarPlus, Video, Users, Info, MapPin, ArrowLeft
 } from "lucide-react";
 import { mockInmate, mockTimeline } from "@/data/mockData";

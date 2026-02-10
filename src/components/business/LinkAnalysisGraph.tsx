@@ -1,13 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
-  Network, AlertTriangle, User, Users, MapPin, 
+  Network, MapPin, AlertTriangle,
   Search, ZoomIn, ZoomOut, RefreshCw, ShieldAlert, Info
 } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 // --- Types ---
 type NodeType = 'inmate' | 'visitor';
@@ -97,10 +95,6 @@ export function LinkAnalysisGraph() {
       case 'PCC': return '#2563eb'; // Blue
       default: return '#64748b'; // Slate
     }
-  };
-
-  const getNodeShape = (node: GraphNode) => {
-    return node.type === 'visitor' ? 'circle' : 'rect';
   };
 
   return (

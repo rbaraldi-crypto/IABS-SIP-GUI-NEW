@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { 
   BrainCircuit, CheckCircle2, AlertTriangle, Activity, TrendingUp, 
-  Upload, ShieldCheck, Cloud, HardDrive, FileText, Loader2, Lock,
+  Upload, ShieldCheck, Cloud, HardDrive, Lock,
   Sparkles, RefreshCw, Eraser
 } from "lucide-react";
 
@@ -68,7 +68,7 @@ export function PsychologicalAnalysis() {
     }
   };
 
-  const processUpload = (fileName: string) => {
+  const processUpload = (_fileName: string) => {
     setIsUploadDialogOpen(false);
     setIsProcessing(true);
     // Simula tempo de processamento da IA (OCR + NLP)
@@ -119,7 +119,6 @@ export function PsychologicalAnalysis() {
         processedText = processedText.split('\n').map(p => p.trim() ? `<p class="mb-3">${p}</p>` : '').join('');
 
         // Cálculo de Scores Mockados baseados na contagem
-        const totalFactors = positiveCount + negativeCount || 1;
         const calculatedScore = Math.min(10, Math.max(0, 5 + (positiveCount * 0.5) - (negativeCount * 0.8))).toFixed(1);
         const calculatedRisk = Math.min(100, Math.max(0, 20 + (negativeCount * 15) - (positiveCount * 5)));
         const calculatedReadiness = Math.min(100, Math.max(0, 40 + (positiveCount * 10) - (negativeCount * 10)));

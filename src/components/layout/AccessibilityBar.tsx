@@ -1,6 +1,6 @@
 import { useAccessibility } from "@/contexts/AccessibilityContext";
 import { Button } from "@/components/ui/button";
-import { Eye, Minus, Plus, RotateCcw, Sun, Moon } from "lucide-react";
+import { Minus, Plus, RotateCcw, Sun, Moon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function AccessibilityBar() {

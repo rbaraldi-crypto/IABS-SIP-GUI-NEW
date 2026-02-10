@@ -1,15 +1,13 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { mockInmate } from "@/data/mockData";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Trophy, BookOpen, Hammer, GraduationCap, Star, 
-  TrendingUp, Clock, Target, ShieldCheck, Medal, 
-  CalendarCheck, ChevronRight, Lock, Info, ArrowLeft
+  TrendingUp, Target, ShieldCheck, Medal, 
+  Lock, Info, ArrowLeft
 } from "lucide-react";
 
 export function InmatePortal() {
@@ -148,7 +146,7 @@ export function InmatePortal() {
           {/* Coluna da Esquerda: Remição Ativa */}
           <div className="space-y-6">
             <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <Clock className="h-6 w-6 text-[#0B3C5D]" />
+              <Info className="h-6 w-6 text-[#0B3C5D]" />
               Painel de Remição (Redução de Pena)
             </h3>
             
