@@ -4,7 +4,8 @@
 
 [build.environment]
   NODE_VERSION = "20.18.0"
-  YARN_FLAGS = "--ignore-engines"
+  # Clear flags to ensure --ignore-optional is not set
+  YARN_FLAGS = "" 
 
 [[redirects]]
   from = "/*"
