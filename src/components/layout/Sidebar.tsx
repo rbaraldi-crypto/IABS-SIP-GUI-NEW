@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, User, Scale, Gavel, ShieldAlert, 
   Globe, Briefcase, Users, Building2, Eye, FileCheck, Trophy,
-  ClipboardList, Calculator
+  ClipboardList, Calculator, Network, CalendarDays
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,6 +27,7 @@ export function Sidebar() {
       title: "Órgão Judicial",
       items: [
         { label: t('nav.mycases'), path: '/meus-casos', icon: Briefcase },
+        { label: "Pauta de Audiências", path: '/pauta-audiencias', icon: CalendarDays },
         { label: t('nav.hitl'), path: '/acao-humana', icon: Gavel },
         { label: t('nav.precedents'), path: '/precedentes', icon: Scale },
         { label: "Calculadora de Pena", path: '/calculadora', icon: Calculator },
@@ -41,8 +42,9 @@ export function Sidebar() {
       ]
     },
     {
-      title: "Compliance & Controle",
+      title: "Inteligência & Segurança",
       items: [
+        { label: "Cadastro Mestre (MEI)", path: '/cadastro-mestre', icon: Network },
         { label: t('nav.compliance'), path: '/compliance', icon: ShieldAlert },
         { label: "Relatórios Gerenciais", path: '/estatisticas', icon: FileCheck },
       ]

@@ -16,6 +16,8 @@ import { ControlRoom } from '@/pages/ControlRoom';
 import { ContingencyPlan } from '@/pages/ContingencyPlan';
 import { ShiftLog } from '@/pages/ShiftLog';
 import { CalculatorPage } from '@/pages/CalculatorPage';
+import { EntityMasterIndex } from '@/pages/EntityMasterIndex';
+import { HearingCalendar } from '@/pages/HearingCalendar';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { AccessibilityProvider } from '@/contexts/AccessibilityContext';
 import { Toaster } from 'sonner';
@@ -50,6 +52,8 @@ function App() {
               <Route path="controle" element={<ControlRoom />} />
               <Route path="ocorrencias" element={<ShiftLog />} />
               <Route path="calculadora" element={<CalculatorPage />} />
+              <Route path="cadastro-mestre" element={<EntityMasterIndex />} />
+              <Route path="pauta-audiencias" element={<HearingCalendar />} />
             </Route>
           </Routes>
           <Toaster />

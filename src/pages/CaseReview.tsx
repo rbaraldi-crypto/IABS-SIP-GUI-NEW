@@ -21,9 +21,9 @@ import {
   ExternalLink, Paperclip, Eye, Edit2, RefreshCw, Loader2, ShieldAlert, PieChart, 
   Split, ArrowRightLeft, PenTool, Shield, Calendar, MapPin, Video, Clock, 
   CalendarPlus, Download, Siren, Maximize2, Minimize2, BookOpen, Sparkles, BrainCircuit,
-  Calculator
+  Calculator, FolderOpen
 } from 'lucide-react';
-import { PdfViewer } from '@/components/business/PdfViewer';
+import { DigitalDossier } from '@/components/business/DigitalDossier';
 import { PrecedentComparator } from '@/components/business/PrecedentComparator';
 import { SmartDecisionEditor } from '@/components/business/SmartDecisionEditor';
 import { PsychologicalAnalysis } from '@/components/business/PsychologicalAnalysis';
@@ -43,8 +43,8 @@ export function CaseReview() {
   const navigate = useNavigate();
   const [selectedSimilarCase, setSelectedSimilarCase] = useState<SimilarCase | null>(null);
   
-  // Estado para o visualizador de documentos
-  const [isDocViewerOpen, setIsDocViewerOpen] = useState(false);
+  // Estado para o visualizador de documentos (Agora Digital Dossier)
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
 
   // Estado para Análise Psicológica (IA)
   const [isPsychAnalysisOpen, setIsPsychAnalysisOpen] = useState(false);
@@ -268,7 +268,7 @@ END:VCALENDAR`;
         </div>
         
         <div className="ml-auto flex items-center gap-4">
-            {/* Sentence Calculator Button - VISIBLE ON MOBILE NOW */}
+            {/* Sentence Calculator Button */}
             <Button 
                 variant="secondary" 
                 className="gap-2 bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
@@ -324,7 +324,6 @@ END:VCALENDAR`;
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ... (Rest of the component remains unchanged) ... */}
         {/* Main Case Info */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
@@ -373,18 +372,18 @@ END:VCALENDAR`;
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div 
                         className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/5 transition-all group cursor-pointer border-primary/20 shadow-sm hover:shadow-md" 
-                        onClick={() => setIsDocViewerOpen(true)}
+                        onClick={() => setIsDossierOpen(true)}
                     >
                         <div className="flex items-center gap-3 overflow-hidden">
                             <div className="h-10 w-10 bg-red-100 text-red-600 rounded flex items-center justify-center shrink-0">
-                                <FileText className="h-5 w-5" />
+                                <FolderOpen className="h-5 w-5" />
                             </div>
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <p className="text-sm font-medium truncate">Visualizador de Autos</p>
+                                    <p className="text-sm font-medium truncate">Dossiê Digital (Bundle)</p>
                                     <Badge variant="default" className="text-[10px] h-4 px-1 bg-red-600 hover:bg-red-700">NOVO</Badge>
                                 </div>
-                                <p className="text-xs text-muted-foreground">Clique para abrir o visualizador</p>
+                                <p className="text-xs text-muted-foreground">Visualizador unificado com paginação global</p>
                             </div>
                         </div>
                         <Button size="icon" variant="ghost">
@@ -419,6 +418,7 @@ END:VCALENDAR`;
 
           {/* Similar Cases Section */}
           <Card className="border-primary/20 shadow-md relative overflow-hidden">
+            {/* ... (Conteúdo de Casos Similares mantido) ... */}
             <CardHeader className="bg-primary/5 border-b border-primary/10">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -489,7 +489,6 @@ END:VCALENDAR`;
                             <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
                         </Button>
                         
-                        {/* Botão Diff View Destacado */}
                         <Button 
                           variant="secondary" 
                           size="sm" 
@@ -555,7 +554,6 @@ END:VCALENDAR`;
                                 )}
                             </div>
 
-                            {/* Add to Calendar Button */}
                             {calendarLinks && (
                               <div className="pt-2">
                                 <DropdownMenu>
@@ -607,7 +605,7 @@ END:VCALENDAR`;
         </div>
       </div>
 
-      {/* Dialogs and Modals (Classification, PDF Viewer, Comparator, Similar Case Details) */}
+      {/* Dialogs and Modals */}
       
       {/* Dialog for Classification Edit */}
       <Dialog open={isEditClassOpen} onOpenChange={setIsEditClassOpen}>
@@ -680,27 +678,27 @@ END:VCALENDAR`;
         </DialogContent>
       </Dialog>
 
-      {/* Dialog for Document Viewer (REAL PDF) */}
-      <Dialog open={isDocViewerOpen} onOpenChange={setIsDocViewerOpen}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+      {/* Dialog for Digital Dossier (NEW) */}
+      <Dialog open={isDossierOpen} onOpenChange={setIsDossierOpen}>
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] flex flex-col p-0 gap-0 overflow-hidden">
             <div className="p-4 border-b flex items-center justify-between bg-muted/20">
               <div>
                 <DialogTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    Visualizador de Autos
+                    <FolderOpen className="h-5 w-5 text-primary" />
+                    Dossiê Digital (Bundle)
                 </DialogTitle>
                 <DialogDescription>
-                    Selecione a fonte do arquivo (S3 ou Local) para visualização.
+                    Visualização unificada, paginação global e ferramentas de anotação.
                 </DialogDescription>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setIsDocViewerOpen(false)}>
+              <Button variant="ghost" size="icon" onClick={() => setIsDossierOpen(false)}>
                 <span className="sr-only">Fechar</span>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </div>
             
-            <div className="flex-1 p-4 bg-slate-50 overflow-hidden">
-              <PdfViewer caseId={id || "unknown"} onLogAction={handleAuditLog} />
+            <div className="flex-1 bg-slate-50 overflow-hidden">
+              <DigitalDossier documents={caseData.documents} onLogAction={handleAuditLog} />
             </div>
         </DialogContent>
       </Dialog>
@@ -730,7 +728,7 @@ END:VCALENDAR`;
         </DialogContent>
       </Dialog>
 
-      {/* Dialog for Sentence Calculator (NEW) */}
+      {/* Dialog for Sentence Calculator */}
       <Dialog open={isCalculatorOpen} onOpenChange={setIsCalculatorOpen}>
         <DialogContent className="max-w-3xl">
             <DialogHeader>
@@ -876,9 +874,9 @@ END:VCALENDAR`;
 
             {/* Main Split Content */}
             <div className="flex-1 grid grid-cols-2 overflow-hidden">
-                {/* Left: PDF Viewer */}
-                <div className="border-r bg-slate-100 p-4 flex flex-col">
-                    <PdfViewer caseId={id || "unknown"} onLogAction={handleAuditLog} />
+                {/* Left: Digital Dossier (Replaces simple PDF Viewer) */}
+                <div className="border-r bg-slate-100 flex flex-col overflow-hidden">
+                    <DigitalDossier documents={caseData.documents} onLogAction={handleAuditLog} />
                 </div>
 
                 {/* Right: Editor */}

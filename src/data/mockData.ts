@@ -47,6 +47,11 @@ export interface CaseDocument {
   date: string;
   pages: number;
   signedBy?: string;
+  // Novos campos para o Dossiê Digital
+  globalStartPage?: number;
+  isEvidence?: boolean;
+  tags?: string[];
+  url?: string; // URL simulada para o PDF
 }
 
 export interface SubordinateUser {
@@ -100,17 +105,110 @@ export interface DistributionUser {
   maxCases: number;
 }
 
+// --- MASTER ENTITY INDEX TYPES (NOVO) ---
+export type EntityRole = 'Detento' | 'Visitante' | 'Advogado' | 'Funcionário' | 'Juiz' | 'Familiar';
+
+export interface EntityRelationship {
+  targetId: string;
+  targetName: string;
+  type: string; // 'Mãe', 'Advogado de', 'Co-réu', 'Visitou'
+  date: string;
+  details?: string;
+}
+
+export interface MasterEntity {
+  id: string; // UUID único
+  name: string;
+  cpf: string;
+  photoUrl?: string;
+  roles: EntityRole[]; // Pode ter múltiplos papéis ao longo do tempo
+  status: 'Ativo' | 'Inativo' | 'Bloqueado' | 'Em Liberdade' | 'Suspenso';
+  lastUpdate: string;
+  relationships: EntityRelationship[];
+  alerts: string[]; // Alertas de inteligência (ex: "Advogado com vínculo familiar")
+  biometricsId?: string;
+  address?: string;
+}
+
+// --- HEARING CALENDAR TYPES (NOVO) ---
+export interface CourtRoom {
+  id: string;
+  name: string;
+  type: 'Virtual' | 'Presencial';
+  capacity: number;
+  status: 'Ativa' | 'Manutenção';
+}
+
+export interface HearingEvent {
+  id: string;
+  caseId: string;
+  caseNumber: string;
+  inmateName: string;
+  type: string; // Justificação, Admonitória, Instrução
+  date: string; // YYYY-MM-DD
+  time: string; // HH:00
+  duration: number; // em horas
+  roomId: string;
+  judge: string;
+  lawyer: string;
+  status: 'Agendada' | 'Realizada' | 'Cancelada' | 'Pendente';
+  conflicts?: string[]; // Array de mensagens de conflito
+}
+
 export const mockSubordinates: SubordinateUser[] = [
   { id: "u1", name: "Ana Paula Souza", role: "Analista Judiciário", avatar: "AP", workload: 45 },
   { id: "u2", name: "Bruno Mendes", role: "Assessor", avatar: "BM", workload: 80 },
   { id: "u3", name: "Carla Diaz", role: "Estagiária de Direito", avatar: "CD", workload: 20 },
 ];
 
+// Documentos atualizados com paginação global simulada
 export const mockDocuments: CaseDocument[] = [
-  { id: "doc-01", title: "Petição Inicial de Progressão", type: "Petição", date: "10/05/2024", pages: 5, signedBy: "Dr. Advogado OAB/SP 123456" },
-  { id: "doc-02", title: "Boletim Informativo", type: "Certidão", date: "11/05/2024", pages: 2, signedBy: "Diretor da Unidade" },
-  { id: "doc-03", title: "Exame Criminológico", type: "Laudo", date: "12/05/2024", pages: 8, signedBy: "Psicóloga Forense" },
-  { id: "doc-04", title: "Manifestação do MP", type: "Parecer", date: "13/05/2024", pages: 3, signedBy: "Promotor de Justiça" },
+  { 
+    id: "doc-01", 
+    title: "Petição Inicial de Progressão", 
+    type: "Petição", 
+    date: "10/05/2024", 
+    pages: 5, 
+    signedBy: "Dr. Advogado OAB/SP 123456",
+    globalStartPage: 1,
+    tags: ["Defesa", "Pedido"],
+    url: "https://pdfobject.com/pdf/sample.pdf"
+  },
+  { 
+    id: "doc-02", 
+    title: "Boletim Informativo", 
+    type: "Certidão", 
+    date: "11/05/2024", 
+    pages: 2, 
+    signedBy: "Diretor da Unidade",
+    globalStartPage: 6,
+    isEvidence: true,
+    tags: ["Administrativo", "Conduta"],
+    url: "https://pdfobject.com/pdf/sample.pdf"
+  },
+  { 
+    id: "doc-03", 
+    title: "Exame Criminológico", 
+    type: "Laudo", 
+    date: "12/05/2024", 
+    pages: 8, 
+    signedBy: "Psicóloga Forense",
+    globalStartPage: 8,
+    isEvidence: true,
+    tags: ["Perícia", "Saúde"],
+    url: "https://pdfobject.com/pdf/sample.pdf"
+  },
+  { 
+    id: "doc-04", 
+    title: "Manifestação do MP", 
+    type: "Parecer", 
+    date: "13/05/2024", 
+    pages: 3, 
+    signedBy: "Promotor de Justiça",
+    globalStartPage: 16,
+    tags: ["Acusação", "Fiscal"],
+    url: "https://pdfobject.com/pdf/sample.pdf"
+  },
 ];
 
 export const mockInmate: InmateProfile = {
@@ -297,8 +395,6 @@ export const mockMyCases: MyCase[] = [
   }
 ];
 
-// --- Mock Data for Distribution Screen ---
-
 export const mockDistributionCases: DistributionCase[] = [
   {
     id: "dist-001",
@@ -378,5 +474,142 @@ export const mockDistributionUsers: DistributionUser[] = [
     status: "Ausente",
     casesCount: 18,
     maxCases: 20
+  }
+];
+
+// --- MOCK MASTER ENTITIES ---
+export const mockMasterEntities: MasterEntity[] = [
+  {
+    id: "ent-001",
+    name: "Carlos Eduardo da Silva",
+    cpf: "123.456.789-00",
+    photoUrl: "https://i.pravatar.cc/300?u=SIP-2024-8921",
+    roles: ["Detento"],
+    status: "Ativo",
+    lastUpdate: "10/05/2024",
+    biometricsId: "ABIS-998877",
+    address: "Rua das Flores, 123 - São Paulo/SP",
+    alerts: [],
+    relationships: [
+      { targetId: "ent-002", targetName: "Maria da Silva", type: "Mãe", date: "15/03/1985" },
+      { targetId: "ent-003", targetName: "Dr. Roberto Mendes", type: "Advogado Constituído", date: "20/01/2024" }
+    ]
+  },
+  {
+    id: "ent-002",
+    name: "Maria da Silva",
+    cpf: "987.654.321-11",
+    photoUrl: "https://i.pravatar.cc/300?u=ent-002",
+    roles: ["Visitante", "Familiar"],
+    status: "Ativo",
+    lastUpdate: "15/06/2024",
+    biometricsId: "ABIS-112233",
+    address: "Rua das Flores, 123 - São Paulo/SP",
+    alerts: [],
+    relationships: [
+      { targetId: "ent-001", targetName: "Carlos Eduardo da Silva", type: "Filho", date: "15/03/1985" }
+    ]
+  },
+  {
+    id: "ent-003",
+    name: "Dr. Roberto Mendes",
+    cpf: "456.789.123-44",
+    photoUrl: "https://i.pravatar.cc/300?u=ent-003",
+    roles: ["Advogado"],
+    status: "Ativo",
+    lastUpdate: "10/06/2024",
+    biometricsId: "ABIS-445566",
+    address: "Av. Paulista, 1000 - Conj 45 - São Paulo/SP",
+    alerts: ["Advogado com múltiplos clientes da mesma facção (Monitorar)"],
+    relationships: [
+      { targetId: "ent-001", targetName: "Carlos Eduardo da Silva", type: "Cliente", date: "20/01/2024" },
+      { targetId: "ent-004", targetName: "João Pedro Santos", type: "Cliente", date: "15/02/2024" }
+    ]
+  },
+  {
+    id: "ent-004",
+    name: "João Pedro Santos",
+    cpf: "111.222.333-44",
+    photoUrl: "https://i.pravatar.cc/300?u=ent-004",
+    roles: ["Detento", "Visitante"], // Exemplo de entidade com múltiplos papéis históricos
+    status: "Ativo",
+    lastUpdate: "15/05/2024",
+    biometricsId: "ABIS-778899",
+    address: "Rua B, 45 - Osasco/SP",
+    alerts: ["Ex-Visitante que se tornou Detento (Risco de Vínculo)"],
+    relationships: [
+      { targetId: "ent-003", targetName: "Dr. Roberto Mendes", type: "Advogado Constituído", date: "15/02/2024" },
+      { targetId: "ent-001", targetName: "Carlos Eduardo da Silva", type: "Co-réu (Processo Antigo)", date: "10/01/2020", details: "Absolvido no processo 0001/2020" }
+    ]
+  }
+];
+
+// --- MOCK HEARING CALENDAR DATA ---
+export const mockCourtRooms: CourtRoom[] = [
+  { id: 'room-01', name: 'Sala Virtual 01 (Teams)', type: 'Virtual', capacity: 10, status: 'Ativa' },
+  { id: 'room-02', name: 'Sala Virtual 02 (Teams)', type: 'Virtual', capacity: 10, status: 'Ativa' },
+  { id: 'room-03', name: 'Sala de Audiência A (Fórum)', type: 'Presencial', capacity: 20, status: 'Ativa' },
+  { id: 'room-04', name: 'Sala de Audiência B (Fórum)', type: 'Presencial', capacity: 20, status: 'Manutenção' },
+];
+
+export const mockHearings: HearingEvent[] = [
+  {
+    id: 'h-001',
+    caseId: 'case-rev-001',
+    caseNumber: '0008921-33.2024.8.26.0050',
+    inmateName: 'Carlos Eduardo da Silva',
+    type: 'Justificação',
+    date: '2024-06-25',
+    time: '14:00',
+    duration: 1,
+    roomId: 'room-01',
+    judge: 'Dr. Silva',
+    lawyer: 'Dr. Roberto Mendes',
+    status: 'Agendada'
+  },
+  {
+    id: 'h-002',
+    caseId: 'case-rev-002',
+    caseNumber: '0012455-11.2023.8.26.0050',
+    inmateName: 'Roberto Alves Junior',
+    type: 'Admonitória',
+    date: '2024-06-25',
+    time: '15:00',
+    duration: 1,
+    roomId: 'room-01',
+    judge: 'Dr. Silva',
+    lawyer: 'Dra. Ana Souza',
+    status: 'Agendada'
+  }
+];
+
+export const mockUnscheduledHearings: HearingEvent[] = [
+  {
+    id: 'h-new-001',
+    caseId: 'case-rev-003',
+    caseNumber: '0005543-22.2024.8.26.0050',
+    inmateName: 'Fernanda Oliveira',
+    type: 'Oitiva de Testemunha',
+    date: '',
+    time: '',
+    duration: 1,
+    roomId: '',
+    judge: 'Dr. Silva',
+    lawyer: 'Defensoria Pública',
+    status: 'Pendente'
+  },
+  {
+    id: 'h-new-002',
+    caseId: 'case-rev-004',
+    caseNumber: '0009988-77.2024.8.26.0050',
+    inmateName: 'João Pedro Santos',
+    type: 'Justificação (Falta Grave)',
+    date: '',
+    time: '',
+    duration: 1,
+    roomId: '',
+    judge: 'Dr. Silva',
+    lawyer: 'Dr. Roberto Mendes', // Conflito proposital com h-001 se agendado na mesma hora
+    status: 'Pendente'
   }
 ];
