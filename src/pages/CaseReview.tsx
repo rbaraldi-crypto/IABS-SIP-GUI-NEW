@@ -37,7 +37,8 @@ interface Classificacao {
   materia: string;
 }
 
-type UserRole = "JUIZ" | "ANALISTA" | "PROMOTOR" | "ADVOGADO" | "DEFENSOR" | "POLICIA";
+// Removido POLICIA/AGENTE da tipagem de review
+type UserRole = "JUIZ" | "ANALISTA" | "PROMOTOR" | "ADVOGADO" | "DEFENSOR";
 
 export function CaseReview() {
   const { id } = useParams();
@@ -310,7 +311,6 @@ END:VCALENDAR`;
                     <option value="PROMOTOR">PROMOTOR (MP)</option>
                     <option value="ADVOGADO">ADVOGADO</option>
                     <option value="DEFENSOR">DEFENSORIA PÚBLICA</option>
-                    <option value="POLICIA">POLÍCIA PENAL</option>
                     <option value="ANALISTA">ANALISTA</option>
                 </select>
             </div>
@@ -319,8 +319,7 @@ END:VCALENDAR`;
                 className={`gap-2 shadow-md hover:shadow-lg transition-all hover:scale-105 ${
                     mockUserRole === 'PROMOTOR' ? 'bg-destructive hover:bg-destructive/90' :
                     mockUserRole === 'ADVOGADO' ? 'bg-slate-800 hover:bg-slate-700' : 
-                    mockUserRole === 'DEFENSOR' ? 'bg-emerald-600 hover:bg-emerald-700' : 
-                    mockUserRole === 'POLICIA' ? 'bg-slate-900 hover:bg-slate-800' : ''
+                    mockUserRole === 'DEFENSOR' ? 'bg-emerald-600 hover:bg-emerald-700' : ''
                 }`} 
                 onClick={handleNavigateToDecision}
             >
@@ -328,12 +327,12 @@ END:VCALENDAR`;
                  mockUserRole === 'PROMOTOR' ? <><Scale className="h-4 w-4" /> <span className="hidden md:inline">Emitir Parecer</span></> :
                  mockUserRole === 'ADVOGADO' ? <><PenTool className="h-4 w-4" /> <span className="hidden md:inline">Peticionar</span></> :
                  mockUserRole === 'DEFENSOR' ? <><Shield className="h-4 w-4" /> <span className="hidden md:inline">Manifestar (DP)</span></> :
-                 mockUserRole === 'POLICIA' ? <><Siren className="h-4 w-4" /> <span className="hidden md:inline">Registrar Ocorrência</span></> :
                  <><FileText className="h-4 w-4" /> <span className="hidden md:inline">Analisar</span></>}
             </Button>
         </div>
       </div>
 
+      {/* Rest of the component remains unchanged */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Case Info */}
         <div className="lg:col-span-2 space-y-6">
@@ -429,7 +428,6 @@ END:VCALENDAR`;
 
           {/* Similar Cases Section */}
           <Card className="border-primary/20 shadow-md relative overflow-hidden">
-            {/* ... (Conteúdo de Casos Similares mantido) ... */}
             <CardHeader className="bg-primary/5 border-b border-primary/10">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">

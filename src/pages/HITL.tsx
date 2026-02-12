@@ -29,7 +29,8 @@ const formSchema = z.object({
   signatureHash: z.string().optional(),
 });
 
-type UserRole = "JUIZ" | "ANALISTA" | "PROMOTOR" | "ADVOGADO" | "DEFENSOR" | "POLICIA";
+// Removido POLICIA/AGENTE da tipagem de HITL
+type UserRole = "JUIZ" | "ANALISTA" | "PROMOTOR" | "ADVOGADO" | "DEFENSOR";
 type SignatureStep = 'idle' | 'detecting' | 'selecting' | 'signing' | 'signed';
 
 export function HITL() {
@@ -206,7 +207,6 @@ export function HITL() {
         case "PROMOTOR": return <Scale className="h-6 w-6" />;
         case "ADVOGADO": return <Briefcase className="h-6 w-6" />;
         case "DEFENSOR": return <Shield className="h-6 w-6" />;
-        case "POLICIA": return <Siren className="h-6 w-6" />;
         default: return <FileInput className="h-6 w-6" />;
     }
   };
@@ -217,7 +217,6 @@ export function HITL() {
         case "PROMOTOR": return "bg-destructive text-destructive-foreground";
         case "ADVOGADO": return "bg-slate-800 text-white";
         case "DEFENSOR": return "bg-emerald-600 text-white";
-        case "POLICIA": return "bg-slate-900 text-white";
         default: return "bg-secondary text-secondary-foreground";
     }
   };
@@ -292,7 +291,6 @@ export function HITL() {
                 <option value="PROMOTOR">PROMOTOR (MP)</option>
                 <option value="ADVOGADO">ADVOGADO</option>
                 <option value="DEFENSOR">DEFENSORIA PÚBLICA</option>
-                <option value="POLICIA">POLÍCIA PENAL</option>
                 <option value="ANALISTA">ANALISTA</option>
             </select>
         </div>
