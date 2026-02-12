@@ -14,10 +14,10 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { 
-  Calendar, Clock, MapPin, Gavel, User, AlertTriangle, 
-  Video, Users, ChevronLeft, ChevronRight, GripVertical, Sparkles
+  Calendar, MapPin, User, AlertTriangle, 
+  Video, ChevronLeft, ChevronRight, GripVertical, Sparkles
 } from "lucide-react";
-import { mockHearings, mockCourtRooms, mockUnscheduledHearings, HearingEvent, CourtRoom } from "@/data/mockData";
+import { mockHearings, mockCourtRooms, mockUnscheduledHearings, HearingEvent } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from 'sonner';
 
@@ -94,7 +94,6 @@ export function HearingCalendar() {
   const [date, setDate] = useState<Date>(new Date(2024, 5, 25)); // Mock Date: 25/06/2024
   const [scheduledHearings, setScheduledHearings] = useState<HearingEvent[]>(mockHearings);
   const [backlog, setBacklog] = useState<HearingEvent[]>(mockUnscheduledHearings);
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [activeHearing, setActiveHearing] = useState<HearingEvent | null>(null);
   
   // Conflict Dialog
@@ -108,7 +107,6 @@ export function HearingCalendar() {
   const timeSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
     const hearing = [...backlog, ...scheduledHearings].find(h => h.id === event.active.id);
     setActiveHearing(hearing || null);
   };
@@ -137,7 +135,6 @@ export function HearingCalendar() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveId(null);
     setActiveHearing(null);
 
     if (!over) return;

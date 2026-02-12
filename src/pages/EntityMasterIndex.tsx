@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { GovHeader } from "@/components/layout/GovHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +14,6 @@ import {
 import { mockMasterEntities, MasterEntity, EntityRole } from "@/data/mockData";
 
 export function EntityMasterIndex() {
-  const navigate = useNavigate();
   const [searchTerm, setSearchText] = useState("");
   const [selectedEntity, setSelectedEntity] = useState<MasterEntity | null>(null);
   const [roleFilter, setRoleFilter] = useState<EntityRole | 'Todos'>('Todos');
