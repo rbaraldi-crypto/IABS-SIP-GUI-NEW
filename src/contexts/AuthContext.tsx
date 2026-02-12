@@ -9,7 +9,8 @@ export type UserRole =
   | 'AGENTE' 
   | 'INTELIGENCIA' 
   | 'CORREGEDORIA' 
-  | 'ADMIN';
+  | 'ADMIN'
+  | 'POLICIA';
 
 export interface User {
   id: string;
@@ -40,6 +41,7 @@ const MOCK_USERS: Record<UserRole, User> = {
   INTELIGENCIA: { id: 'u7', name: 'Agente P2', role: 'INTELIGENCIA', email: 'intel@sap.gov.br', avatar: 'P2' },
   CORREGEDORIA: { id: 'u8', name: 'Corregedor Lima', role: 'CORREGEDORIA', email: 'corregedoria@sap.gov.br', avatar: 'CL' },
   ADMIN: { id: 'u0', name: 'Administrador', role: 'ADMIN', email: 'admin@sistema.gov.br', avatar: 'AD' },
+  POLICIA: { id: 'u9', name: 'Policial Civil', role: 'POLICIA', email: 'pc@policia.gov.br', avatar: 'PC' },
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {

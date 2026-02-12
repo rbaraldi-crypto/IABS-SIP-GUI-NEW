@@ -20,7 +20,7 @@ import {
   ArrowLeft, Scale, FileText, AlertCircle, CheckCircle2, Gavel, ArrowUpRight, Lock, 
   ExternalLink, Paperclip, Eye, Edit2, RefreshCw, Loader2, ShieldAlert, PieChart, 
   Split, ArrowRightLeft, PenTool, Shield, Calendar, MapPin, Video, Clock, 
-  CalendarPlus, Download, Siren, Maximize2, Minimize2, BookOpen, Sparkles, BrainCircuit,
+  CalendarPlus, Download, Maximize2, Minimize2, BookOpen, Sparkles, BrainCircuit,
   Calculator, FolderOpen
 } from 'lucide-react';
 import { DigitalDossier, EvidenceItem } from '@/components/business/DigitalDossier';

@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, allowedRoles = [] }: ProtectedRouteProps) {
-  const { isAuthenticated, user, hasPermission } = useAuth();
+  const { isAuthenticated, hasPermission } = useAuth();
   const location = useLocation();
 
   if (!isAuthenticated) {

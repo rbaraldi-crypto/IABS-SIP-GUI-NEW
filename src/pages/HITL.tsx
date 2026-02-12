@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   Gavel, Loader2, CheckCircle, ShieldAlert, FileInput, ArrowRight, ArrowLeft, 
   Search, BookOpen, ShieldCheck, FileText, User, 
-  Briefcase, Scale, Shield, Siren, Usb, RefreshCw, Key
+  Briefcase, Scale, Shield, Usb, RefreshCw, Key
 } from "lucide-react";
 import { mockMyCases } from "@/data/mockData";
 import { SmartDecisionEditor } from "@/components/business/SmartDecisionEditor";
