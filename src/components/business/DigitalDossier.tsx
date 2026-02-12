@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, ZoomIn, ZoomOut, 
   FileText, Search, Stamp, Eraser, 
   Eye, AlertCircle, ShieldCheck, Lock,
-  MoreVertical, Download, Printer, ExternalLink
+  MoreVertical, Download, Printer, ExternalLink, Gavel, Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,9 +23,18 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
+export interface EvidenceItem {
+  id: string;
+  pageIndex: number;
+  label: string;
+  documentTitle: string;
+  status: 'pending' | 'admitted';
+}
+
 interface DigitalDossierProps {
   documents: CaseDocument[];
   onLogAction: (action: string, details: string) => void;
+  onAdmitEvidence?: (evidence: EvidenceItem) => void;
 }
 
 interface Redaction {
@@ -43,9 +52,10 @@ interface EvidenceStamp {
   label: string;
   x: number;
   y: number;
+  status: 'pending' | 'admitted';
 }
 
-export function DigitalDossier({ documents, onLogAction }: DigitalDossierProps) {
+export function DigitalDossier({ documents, onLogAction, onAdmitEvidence }: DigitalDossierProps) {
   // --- State Management ---
   const [currentDocIndex, setCurrentDocIndex] = useState(0);
   const [currentPageInDoc, setCurrentPageInDoc] = useState(1);
@@ -117,7 +127,8 @@ export function DigitalDossier({ documents, onLogAction }: DigitalDossierProps) 
         pageIndex: currentGlobalPage,
         label: `EVIDÊNCIA #${evidences.length + 1}`,
         x: x - 60,
-        y: y - 20
+        y: y - 20,
+        status: 'pending'
       };
       setEvidences([...evidences, newEvidence]);
       onLogAction("MARK_EVIDENCE", `Página global ${currentGlobalPage} marcada como evidência.`);
@@ -135,6 +146,30 @@ export function DigitalDossier({ documents, onLogAction }: DigitalDossierProps) 
   const removeEvidence = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setEvidences(evidences.filter(ev => ev.id !== id));
+  };
+
+  const handleAdmitEvidence = (evId: string) => {
+    const evidence = evidences.find(e => e.id === evId);
+    if (evidence && evidence.status === 'pending') {
+      // Update local state
+      const updatedEvidences = evidences.map(e => 
+        e.id === evId ? { ...e, status: 'admitted' as const } : e
+      );
+      setEvidences(updatedEvidences);
+      
+      // Notify parent/audit
+      onLogAction("ADMIT_EVIDENCE", `Evidência #${evidence.id} admitida formalmente nos autos.`);
+      
+      if (onAdmitEvidence) {
+        onAdmitEvidence({
+          id: evidence.id,
+          pageIndex: evidence.pageIndex,
+          label: evidence.label,
+          documentTitle: currentDoc.title, // Note: This assumes evidence is on current doc, might need logic if admitting from list later
+          status: 'admitted'
+        });
+      }
+    }
   };
 
   return (
@@ -381,8 +416,11 @@ export function DigitalDossier({ documents, onLogAction }: DigitalDossierProps) 
                                 top: ev.y * scale,
                             }}
                         >
-                            <div className="border-4 border-red-600 text-red-600 px-4 py-2 font-bold text-xl uppercase tracking-widest opacity-80 rotate-[-15deg] select-none bg-white/10 backdrop-blur-[1px]">
-                                {ev.label}
+                            <div className={cn(
+                                "border-4 px-4 py-2 font-bold text-xl uppercase tracking-widest opacity-80 rotate-[-15deg] select-none bg-white/10 backdrop-blur-[1px] transition-colors",
+                                ev.status === 'admitted' ? "border-green-600 text-green-600" : "border-red-600 text-red-600"
+                            )}>
+                                {ev.status === 'admitted' ? 'ADMITIDO' : ev.label}
                             </div>
                             <button 
                                 onClick={(e) => removeEvidence(ev.id, e)}
@@ -424,12 +462,27 @@ export function DigitalDossier({ documents, onLogAction }: DigitalDossierProps) 
                     {evidences.length > 0 ? (
                         <div className="space-y-2">
                             {evidences.map(ev => (
-                                <Card key={ev.id} className="p-2 bg-red-50 border-red-100">
-                                    <div className="flex justify-between items-start">
-                                        <span className="font-bold text-red-700 text-xs">{ev.label}</span>
+                                <Card key={ev.id} className={cn("p-2 border", ev.status === 'admitted' ? "bg-green-50 border-green-200" : "bg-red-50 border-red-100")}>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className={cn("font-bold text-xs", ev.status === 'admitted' ? "text-green-700" : "text-red-700")}>
+                                            {ev.label}
+                                        </span>
                                         <Badge variant="outline" className="text-[9px] bg-white">Pág {ev.pageIndex}</Badge>
                                     </div>
-                                    <p className="text-[10px] text-red-600/80 mt-1">Marcado manualmente</p>
+                                    
+                                    {ev.status === 'pending' ? (
+                                        <Button 
+                                            size="sm" 
+                                            className="w-full h-6 text-[10px] bg-red-600 hover:bg-red-700 text-white gap-1"
+                                            onClick={() => handleAdmitEvidence(ev.id)}
+                                        >
+                                            <Gavel className="h-3 w-3" /> Admitir nos Autos
+                                        </Button>
+                                    ) : (
+                                        <div className="flex items-center gap-1 text-[10px] text-green-700 font-bold justify-center bg-green-100 p-1 rounded">
+                                            <Check className="h-3 w-3" /> Admitida
+                                        </div>
+                                    )}
                                 </Card>
                             ))}
                         </div>
@@ -465,7 +518,7 @@ export function DigitalDossier({ documents, onLogAction }: DigitalDossierProps) 
         <div className="p-4 border-t bg-yellow-50">
             <div className="flex gap-2 items-start text-xs text-yellow-800">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                <p>As marcações são salvas no Dossiê Digital e visíveis para o Juiz e Promotor.</p>
+                <p>As evidências admitidas são sincronizadas automaticamente com o Editor de Decisão.</p>
             </div>
         </div>
       </div>

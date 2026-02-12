@@ -23,12 +23,13 @@ import {
   CalendarPlus, Download, Siren, Maximize2, Minimize2, BookOpen, Sparkles, BrainCircuit,
   Calculator, FolderOpen
 } from 'lucide-react';
-import { DigitalDossier } from '@/components/business/DigitalDossier';
+import { DigitalDossier, EvidenceItem } from '@/components/business/DigitalDossier';
 import { PrecedentComparator } from '@/components/business/PrecedentComparator';
 import { SmartDecisionEditor } from '@/components/business/SmartDecisionEditor';
 import { PsychologicalAnalysis } from '@/components/business/PsychologicalAnalysis';
 import { SentenceCalculator } from '@/components/business/SentenceCalculator';
 import { dynamoService } from '@/services/awsMock';
+import { toast } from 'sonner';
 
 // Interface para a resposta da API
 interface Classificacao {
@@ -76,6 +77,9 @@ export function CaseReview() {
   // Focus Mode State
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [focusDraft, setFocusDraft] = useState("");
+
+  // Admitted Evidences State (Bridge between Dossier and Editor)
+  const [admittedEvidences, setAdmittedEvidences] = useState<EvidenceItem[]>([]);
 
   const caseData = mockMyCases.find(c => c.id === id);
 
@@ -183,6 +187,13 @@ export function CaseReview() {
   const handleSaveSimulation = (data: any) => {
     handleAuditLog("SIMULACAO_PENA", `Simulação salva: ${data.remissionDays} dias remidos.`);
     setIsCalculatorOpen(false);
+  };
+
+  const handleAdmitEvidence = (evidence: EvidenceItem) => {
+    setAdmittedEvidences(prev => [...prev, evidence]);
+    toast.success("Evidência admitida nos autos", {
+      description: "O item foi adicionado ao contexto do Editor de Decisão."
+    });
   };
 
   // --- Calendar Integration Logic ---
@@ -698,7 +709,11 @@ END:VCALENDAR`;
             </div>
             
             <div className="flex-1 bg-slate-50 overflow-hidden">
-              <DigitalDossier documents={caseData.documents} onLogAction={handleAuditLog} />
+              <DigitalDossier 
+                documents={caseData.documents} 
+                onLogAction={handleAuditLog}
+                onAdmitEvidence={handleAdmitEvidence} 
+              />
             </div>
         </DialogContent>
       </Dialog>
@@ -876,7 +891,11 @@ END:VCALENDAR`;
             <div className="flex-1 grid grid-cols-2 overflow-hidden">
                 {/* Left: Digital Dossier (Replaces simple PDF Viewer) */}
                 <div className="border-r bg-slate-100 flex flex-col overflow-hidden">
-                    <DigitalDossier documents={caseData.documents} onLogAction={handleAuditLog} />
+                    <DigitalDossier 
+                        documents={caseData.documents} 
+                        onLogAction={handleAuditLog}
+                        onAdmitEvidence={handleAdmitEvidence}
+                    />
                 </div>
 
                 {/* Right: Editor */}
@@ -900,6 +919,7 @@ END:VCALENDAR`;
                                 status: caseData.status
                             }}
                             documents={caseData.documents} // Passando documentos para o RAG
+                            externalEvidences={admittedEvidences} // Passando evidências admitidas
                         />
                         
                         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">

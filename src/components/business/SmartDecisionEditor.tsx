@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Sparkles, RefreshCw, Check, Copy, FileText, 
   Search, BookOpen, AlertCircle, ScanText, CheckCircle2,
-  ClipboardPaste, Plus
+  ClipboardPaste, Plus, Stamp
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { CaseDocument } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import { EvidenceItem } from './DigitalDossier';
 
 interface SmartDecisionEditorProps {
   initialValue: string;
@@ -25,6 +26,7 @@ interface SmartDecisionEditorProps {
   };
   userRole: 'JUIZ' | 'ANALISTA' | 'PROMOTOR' | 'ADVOGADO' | 'DEFENSOR' | 'POLICIA';
   documents?: CaseDocument[];
+  externalEvidences?: EvidenceItem[]; // New Prop for admitted evidences
 }
 
 interface ExtractedFact {
@@ -34,9 +36,10 @@ interface ExtractedFact {
   page: number;
   confidence: number;
   type: 'positive' | 'negative' | 'neutral';
+  isAdmitted?: boolean;
 }
 
-export function SmartDecisionEditor({ initialValue, onChange, caseContext, userRole, documents = [] }: SmartDecisionEditorProps) {
+export function SmartDecisionEditor({ initialValue, onChange, caseContext, userRole, documents = [], externalEvidences = [] }: SmartDecisionEditorProps) {
   const [content, setContent] = useState(initialValue);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -49,6 +52,28 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
   const [isPasteDialogOpen, setIsPasteDialogOpen] = useState(false);
   const [pastedText, setPastedText] = useState("");
 
+  // Sync external evidences
+  useEffect(() => {
+    if (externalEvidences.length > 0) {
+      const newFacts = externalEvidences.map(ev => ({
+        id: ev.id,
+        fact: "Evidência formalmente admitida nos autos",
+        sourceDoc: ev.documentTitle || "Documento do Processo",
+        page: ev.pageIndex,
+        confidence: 100,
+        type: 'neutral' as const,
+        isAdmitted: true
+      }));
+      
+      // Merge avoiding duplicates
+      setExtractedFacts(prev => {
+        const existingIds = new Set(prev.map(f => f.id));
+        const uniqueNew = newFacts.filter(f => !existingIds.has(f.id));
+        return [...uniqueNew, ...prev];
+      });
+    }
+  }, [externalEvidences]);
+
   // Atualiza o pai quando o conteúdo muda localmente
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value);
@@ -60,7 +85,9 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
     
     setIsAnalyzing(true);
     setGenerationProgress(0);
-    setExtractedFacts([]);
+    
+    // Keep admitted evidences, clear others
+    setExtractedFacts(prev => prev.filter(f => f.isAdmitted));
 
     // Simula leitura de cada documento
     const totalSteps = documents.length * 2;
@@ -105,7 +132,7 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
       }
     }
 
-    setExtractedFacts(facts);
+    setExtractedFacts(prev => [...prev, ...facts]);
     setIsAnalyzing(false);
     setAnalysisComplete(true);
     setGenerationProgress(100);
@@ -322,8 +349,16 @@ export function SmartDecisionEditor({ initialValue, onChange, caseContext, userR
           {extractedFacts.length > 0 ? (
             <div className="space-y-3">
               {extractedFacts.map((fact) => (
-                <Card key={fact.id} className="shadow-sm border-l-4 border-l-primary hover:shadow-md transition-shadow cursor-pointer group">
+                <Card key={fact.id} className={cn(
+                  "shadow-sm border-l-4 hover:shadow-md transition-shadow cursor-pointer group",
+                  fact.isAdmitted ? "border-l-green-600 bg-green-50/30" : "border-l-primary"
+                )}>
                   <CardContent className="p-3">
+                    {fact.isAdmitted && (
+                      <div className="flex items-center gap-1 mb-1 text-[10px] font-bold text-green-700 uppercase">
+                        <Stamp className="h-3 w-3" /> Admitida nos Autos
+                      </div>
+                    )}
                     <p className="text-xs font-medium text-foreground mb-2 leading-snug">
                       "{fact.fact}"
                     </p>
